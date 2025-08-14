@@ -94,9 +94,7 @@ def main() -> None:
         print(f"SUCCESS: Compiled all {success_count} protobuf definition(s).")
         sys.exit(0)
     else:
-        print(
-            f"FAILURE: Only {success_count} of {len(proto_files)} files succeeded."
-        )
+        print(f"FAILURE: Only {success_count} of {len(proto_files)} files succeeded.")
         sys.exit(1)
 
 

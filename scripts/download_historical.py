@@ -1,13 +1,12 @@
 #!/usr/bin/env python
-"""
-A command-line utility to download historical candlestick data for a given
-symbol and save it to a CSV file.
+"""A command-line utility to download historical candlestick data.
 
 This script is useful for offline analysis, backtesting, or pre-populating
 a data store. It uses the application's adapter infrastructure to fetch data.
 
 Usage:
-    python scripts/download_historical.py <EXCHANGE> <SYMBOL> <TIMEFRAME> <START_DATE> [END_DATE]
+    python scripts/download_historical.py <EXCHANGE> <SYMBOL> <TIMEFRAME> \\
+        <START_DATE> [END_DATE]
 
 Example:
     python scripts/download_historical.py coinbase BTC/USD 1h 2023-01-01 2023-02-01
@@ -59,7 +58,11 @@ ADAPTER_MAP: dict[str, type[ExchangeAdapter]] = {
 
 def print_usage() -> None:
     """Prints the script's usage instructions."""
-    print("Usage: python download_historical.py <EXCHANGE> <SYMBOL> <TIMEFRAME> <START_DATE> [END_DATE]")
+    usage_string = (
+        "Usage: python download_historical.py <EXCHANGE> <SYMBOL> <TIMEFRAME> "
+        "<START_DATE> [END_DATE]"
+    )
+    print(usage_string)
     print("\nArguments:")
     print("  EXCHANGE:   The exchange to download from.")
     print(f"              Available: {', '.join(ADAPTER_MAP.keys())}")
@@ -73,23 +76,32 @@ def print_usage() -> None:
 
 async def main() -> int:
     """Main async function to parse args, fetch data, and write to CSV."""
-    if len(sys.argv) < 5 or len(sys.argv) > 6:
+    if not 5 <= len(sys.argv) <= 6:
         print_usage()
         return 1
 
     try:
-        exchange_name = sys.argv[1].lower()
-        symbol = sys.argv[2].upper()
-        timeframe = sys.argv[3].lower()
-        start_date_str = sys.argv[4]
-        end_date_str = sys.argv[5] if len(sys.argv) == 6 else datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        exchange_name = sys.argv.lower()
+        symbol = sys.argv.upper()
+        timeframe = sys.argv.lower()
+        start_date_str = sys.argv
+        end_date_str = (
+            sys.argv
+            if len(sys.argv) == 6
+            else datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        )
 
         # --- Argument Validation ---
         if exchange_name not in ADAPTER_MAP:
-            logger.error(f"Invalid exchange '{exchange_name}'. Available: {list(ADAPTER_MAP.keys())}")
+            logger.error(
+                f"Invalid exchange '{exchange_name}'. "
+                f"Available: {list(ADAPTER_MAP.keys())}"
+            )
             return 1
 
-        start_dt = datetime.strptime(start_date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        start_dt = datetime.strptime(start_date_str, "%Y-%m-%d").replace(
+            tzinfo=timezone.utc
+        )
         end_dt = datetime.strptime(end_date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
 
         if start_dt >= end_dt:
@@ -105,9 +117,13 @@ async def main() -> int:
     logger.info(f"Initializing adapter for '{exchange_name}'...")
     adapter_class = ADAPTER_MAP[exchange_name]
     # The adapter needs a dummy queue and http client for initialization
-    adapter = adapter_class(symbols=[symbol], output_queue=asyncio.Queue(), http_client=httpx.AsyncClient())
+    adapter = adapter_class(
+        symbols=[symbol], output_queue=asyncio.Queue(), http_client=httpx.AsyncClient()
+    )
 
-    logger.info(f"Fetching data for {symbol} ({timeframe}) from {start_date_str} to {end_date_str}...")
+    logger.info(
+        f"Fetching data for {symbol} ({timeframe}) from {start_date_str} to {end_date_str}..."
+    )
     try:
         candles = await adapter.get_historical_candles(symbol, timeframe, start_dt, end_dt)
     except Exception as e:
@@ -117,14 +133,19 @@ async def main() -> int:
         await adapter.http_client.aclose()
 
     if not candles:
-        logger.warning("No data was returned from the exchange for the specified range.")
+        logger.warning(
+            "No data was returned from the exchange for the specified range."
+        )
         return 0
 
     logger.success(f"Successfully downloaded {len(candles)} candles.")
 
     # --- CSV Writing ---
     sanitized_symbol = symbol.replace("/", "-")
-    filename = f"{exchange_name}_{sanitized_symbol}_{timeframe}_{start_date_str}_to_{end_date_str}.csv"
+    filename = (
+        f"{exchange_name}_{sanitized_symbol}_{timeframe}_"
+        f"{start_date_str}_to_{end_date_str}.csv"
+    )
     output_path = Path.cwd() / filename
 
     logger.info(f"Writing data to '{output_path}'...")
@@ -135,19 +156,21 @@ async def main() -> int:
             writer.writerow(models_pb2.Candle.DESCRIPTOR.fields_by_name.keys())
             # Write data rows
             for candle in candles:
-                writer.writerow([
-                    candle.symbol,
-                    candle.timeframe,
-                    candle.open_time,
-                    candle.close_time,
-                    candle.open,
-                    candle.high,
-                    candle.low,
-                    candle.close,
-                    candle.volume,
-                ])
+                writer.writerow(
+                    [
+                        candle.symbol,
+                        candle.timeframe,
+                        candle.open_time,
+                        candle.close_time,
+                        candle.open,
+                        candle.high,
+                        candle.low,
+                        candle.close,
+                        candle.volume,
+                    ]
+                )
         logger.success("File written successfully.")
-    except IOError as e:
+    except OSError as e:
         logger.error(f"Failed to write to file: {e}")
         return 1
 
@@ -158,7 +181,6 @@ if __name__ == "__main__":
     # Setup basic logging for the script
     logger.remove()
     logger.add(sys.stderr, level="INFO")
-    
     try:
         exit_code = asyncio.run(main())
         sys.exit(exit_code)

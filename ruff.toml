@@ -55,4 +55,4 @@ line-ending = "auto"
 # The compile script is a command-line tool, so print is acceptable.
 "proto/compile_proto.py" = ["T201", "S603"]
 # The generated protobuf file will have many style issues; we ignore it completely.
-"src/cryptochart/types/models_pb2.py" = ["ALL"]
+"src/cryptochart/types/*_pb2.py" = ["ALL"]

@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-"""
-A standalone script to run the latency benchmark test.
+"""A standalone script to run the latency benchmark test.
 
 This script provides an easy way to execute the latency integration test
 without running the full pytest suite. It uses pytest's infrastructure
@@ -34,15 +33,16 @@ LATENCY_TEST_FILE = ROOT_DIR / "tests" / "integration" / "test_latency_budget.py
 
 
 def main() -> int:
-    """
-    Runs the latency benchmark using pytest.
+    """Runs the latency benchmark using pytest.
 
     Returns:
         The exit code from the pytest run. 0 for success, non-zero for failure.
     """
     print("--- CryptoChart Latency Benchmark ---")
     print(f"Target test file: {LATENCY_TEST_FILE}")
-    print("This test will simulate a high volume of trades to measure pipeline performance.")
+    print(
+        "This test will simulate a high volume of trades to measure pipeline performance."
+    )
     print("Please wait, this may take a few seconds...")
     print("-" * 35)
 
@@ -72,9 +72,9 @@ def main() -> int:
 
     print("-" * 35)
     if exit_code == 0:
-        print("✅ Latency benchmark completed successfully.")
+        print("Latency benchmark completed successfully.")
     else:
-        print(f"❌ Latency benchmark failed with exit code: {exit_code}")
+        print(f"Latency benchmark failed with exit code: {exit_code}")
         print("   Check the output above for details on the failure.")
 
     return exit_code

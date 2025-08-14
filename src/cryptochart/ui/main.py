@@ -3,11 +3,10 @@ import sys
 from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any
 
 import httpx
 from loguru import logger
-from PySide6.QtCore import QTimer, Slot
+from PySide6.QtCore import Slot
 from PySide6.QtGui import QAction, QCloseEvent
 from PySide6.QtWidgets import (
     QApplication,
@@ -54,6 +53,7 @@ class MainWindow(QMainWindow):
         self._active_subscription_id: int | None = None
         self._ui_update_task: asyncio.Task[None] | None = None
         self._settings_panel: SettingsPanel | None = None
+        self._pair_selection_task: asyncio.Task[None] | None = None
 
         # --- Initialize Core Components ---
         self._http_client = httpx.AsyncClient(
@@ -142,17 +142,20 @@ class MainWindow(QMainWindow):
     @Slot()
     def _show_pair_selector(self) -> None:
         """Slot to show the pair selection dialog."""
-        self._pair_selection_task = asyncio.create_task(
-            self._run_pair_selection_flow()
-        )
+        self._pair_selection_task = asyncio.create_task(self._run_pair_selection_flow())
 
     async def _run_pair_selection_flow(self) -> None:
         """Orchestrates the process of selecting and loading a new pair."""
         self.statusBar().showMessage("Fetching available pairs...")
         all_pairs = {
-            "BTC/USD", "BTC/EUR", "BTC/USDT", "ETH/USD", "ETH/EUR", "ETH/USDT"
+            "BTC/USD",
+            "BTC/EUR",
+            "BTC/USDT",
+            "ETH/USD",
+            "ETH/EUR",
+            "ETH/USDT",
         }
-        
+
         selected_pair, ok = QInputDialog.getItem(
             self, "Select Pair", "Pair:", sorted(all_pairs), 0, False
         )
@@ -175,12 +178,15 @@ class MainWindow(QMainWindow):
         self._active_adapters.clear()
 
         relevant_adapters = [
-            adapter for adapter in self._all_adapters
-            if pair.split('/')[1] in adapter.venue_name.upper() or 'USD' in pair
+            adapter
+            for adapter in self._all_adapters
+            if pair.split("/") in adapter.venue_name.upper() or "USD" in pair
         ]
         if not relevant_adapters:
             relevant_adapters = [
-                a for a in self._all_adapters if a.venue_name in ("coinbase", "kraken", "binance")
+                a
+                for a in self._all_adapters
+                if a.venue_name in ("coinbase", "kraken", "binance")
             ]
 
         for adapter in relevant_adapters:
@@ -202,7 +208,7 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "No Adapters", f"No adapters found for {symbol}.")
             return
 
-        adapter = adapters[0]
+        adapter = adapters
         self.statusBar().showMessage(
             f"Fetching historical data for {symbol} from {adapter.venue_name}..."
         )
@@ -276,4 +282,26 @@ async def main_async() -> int:
         else None
     )
     setup_logging(
-        cons
+        console_level=settings.general.log_level_console,
+        file_level=settings.general.log_level_file,
+        log_dir=log_dir,
+    )
+
+    main_window = MainWindow()
+    main_window.show()
+    await main_window.start_services()
+    return 0
+
+
+def main() -> None:
+    """The synchronous entry point for the application."""
+    try:
+        exit_code = run_with_asyncio(main_async())
+        sys.exit(exit_code)
+    except Exception:
+        logger.exception("An unhandled exception reached the top-level entry point.")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

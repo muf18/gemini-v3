@@ -1,6 +1,5 @@
 # src/cryptochart/__init__.py
-"""
-CryptoChart: A high-performance, real-time cryptocurrency charting client.
+"""CryptoChart: A high-performance, real-time cryptocurrency charting client.
 
 This package contains the core application logic, including exchange adapters,
 data processing pipelines, and the user interface.

@@ -1,9 +1,10 @@
 import time
+from datetime import datetime, timezone
 from decimal import Decimal
 
-import numpy as np
 import pandas as pd
 import pytest
+from loguru import logger
 
 from cryptochart.aggregator import SymbolAggregator
 from cryptochart.types import models_pb2
@@ -28,6 +29,7 @@ def pandas_vwap_calculator(
 ) -> tuple[Decimal, Decimal]:
     """
     Calculates VWAP and cumulative volume for a series of trades using Pandas.
+
     This serves as the ground truth for our test.
 
     Args:
@@ -49,9 +51,7 @@ def pandas_vwap_calculator(
     df["price_volume"] = df["price"] * df["size"]
 
     # Perform rolling calculations
-    rolling_sum_price_volume = df["price_volume"].rolling(
-        f"{window_seconds}s"
-    ).sum()
+    rolling_sum_price_volume = df["price_volume"].rolling(f"{window_seconds}s").sum()
     rolling_sum_volume = df["size"].rolling(f"{window_seconds}s").sum()
 
     # Calculate VWAP, handling potential division by zero
@@ -65,14 +65,14 @@ def pandas_vwap_calculator(
 
 
 @pytest.mark.parametrize(
-    "timeframe, window_seconds",
+    ("timeframe", "window_seconds"),
     [
         ("1m", 60),
         ("5m", 300),
     ],
 )
 def test_aggregator_consistency_with_pandas(
-    timeframe: str, window_seconds: int
+    timeframe: str, window_seconds: int, mocker
 ) -> None:
     """
     Tests that the SymbolAggregator's VWAP and cumulative volume match the
@@ -81,7 +81,7 @@ def test_aggregator_consistency_with_pandas(
     # --- Setup ---
     symbol_aggregator = SymbolAggregator("BTC/USD")
     start_time = time.time()
-    
+
     # Create a list of trades with absolute timestamps
     trades_with_abs_ts = [
         (int(start_time + offset), price, size)
@@ -92,7 +92,7 @@ def test_aggregator_consistency_with_pandas(
     final_agg_update = None
     for ts, price, size in trades_with_abs_ts:
         # Simulate time passing for the aggregator's internal clock
-        time.time_ns = lambda: ts * 1_000_000_000
+        mocker.patch("time.time_ns", return_value=ts * 1_000_000_000)
 
         trade_update = models_pb2.PriceUpdate(
             symbol="BTC/USD",
@@ -101,9 +101,9 @@ def test_aggregator_consistency_with_pandas(
             size=size,
             exchange_timestamp=datetime.fromtimestamp(ts, tz=timezone.utc).isoformat(),
         )
-        
+
         aggregated_updates = symbol_aggregator.process_update(trade_update)
-        
+
         # Find the update for the specific timeframe we are testing
         for update in aggregated_updates:
             if update.timeframe == timeframe:
@@ -131,4 +131,6 @@ def test_aggregator_consistency_with_pandas(
 
     logger.info(f"[{timeframe}] Consistency check PASSED.")
     logger.info(f"  Aggregator VWAP: {actual_vwap}, Pandas VWAP: {expected_vwap}")
-    logger.info(f"  Aggregator CumVol: {actual_cum_vol}, Pandas CumVol: {expected_cum_vol}")
+    logger.info(
+        f"  Aggregator CumVol: {actual_cum_vol}, Pandas CumVol: {expected_cum_vol}"
+    )

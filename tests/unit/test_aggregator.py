@@ -1,11 +1,9 @@
 import asyncio
-import time
 from decimal import Decimal
 
 import pytest
 
 from cryptochart.aggregator import (
-    FIXED_POINT_SCALE,
     TIMEFRAME_SECONDS,
     Aggregator,
     SymbolAggregator,
@@ -76,7 +74,7 @@ def test_fixed_point_precision(symbol_aggregator: SymbolAggregator) -> None:
 
 @pytest.mark.asyncio
 async def test_rolling_window_purges_old_trades(
-    symbol_aggregator: SymbolAggregator,
+    symbol_aggregator: SymbolAggregator, mocker
 ) -> None:
     """Tests that old trades are correctly purged from the window."""
     # Use a short timeframe for testing
@@ -85,6 +83,7 @@ async def test_rolling_window_purges_old_trades(
 
     try:
         # 1. First trade
+        mocker.patch("time.time_ns", return_value=int(time.time() * 1e9))
         trade1 = create_trade("BTC/USD", "100", "1")
         updates1 = symbol_aggregator.process_update(trade1)
         update1_1m = next(u for u in updates1 if u.timeframe == "1m")
@@ -93,6 +92,7 @@ async def test_rolling_window_purges_old_trades(
 
         # 2. Wait for the window to pass
         await asyncio.sleep(1.1)
+        mocker.patch("time.time_ns", return_value=int((time.time() + 1.1) * 1e9))
 
         # 3. Second trade
         trade2 = create_trade("BTC/USD", "200", "2")
@@ -140,9 +140,9 @@ async def test_aggregator_main_loop() -> None:
     assert "ETH/USD" in aggregator.symbol_aggregators
 
     assert len(results_btc) == num_timeframes
-    assert results_btc[0].vwap == "100.0"
-    assert results_btc[0].cum_volume == "1.0"
+    assert results_btc.vwap == "100.0"
+    assert results_btc.cum_volume == "1.0"
 
     assert len(results_eth) == num_timeframes
-    assert results_eth[0].vwap == "50.0"
-    assert results_eth[0].cum_volume == "10.0"```
+    assert results_eth.vwap == "50.0"
+    assert results_eth.cum_volume == "10.0"

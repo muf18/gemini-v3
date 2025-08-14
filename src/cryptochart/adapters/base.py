@@ -61,7 +61,9 @@ class ExchangeAdapter(abc.ABC):
         if self._main_task is None or self._main_task.done():
             self._running.set()
             self._main_task = asyncio.create_task(self._run_with_reconnect())
-            logger.info(f"[{self.venue_name}] Adapter started for symbols: {self.symbols}")
+            logger.info(
+                f"[{self.venue_name}] Adapter started for symbols: {self.symbols}"
+            )
         else:
             logger.warning(f"[{self.venue_name}] Adapter is already running.")
 
@@ -100,7 +102,7 @@ class ExchangeAdapter(abc.ABC):
 
                 if not self._running.is_set():
                     break
-                delay = INITIAL_RECONNECT_DELAY_S  # Reset delay after a clean disconnect.
+                delay = INITIAL_RECONNECT_DELAY_S  # Reset delay on clean disconnect.
                 logger.info(f"[{self.venue_name}] Stream ended. Reconnecting...")
 
             except (
@@ -108,14 +110,21 @@ class ExchangeAdapter(abc.ABC):
                 asyncio.TimeoutError,
                 OSError,
             ) as e:
-                logger.warning(f"[{self.venue_name}] Connection lost: {type(e).__name__}. Reconnecting...")
+                logger.warning(
+                    f"[{self.venue_name}] Connection lost: {type(e).__name__}. "
+                    "Reconnecting..."
+                )
             except Exception:
-                logger.exception(f"[{self.venue_name}] Unexpected error in run loop. Reconnecting...")
+                logger.exception(
+                    f"[{self.venue_name}] Unexpected error in run loop. Reconnecting..."
+                )
 
             if self._running.is_set():
                 jitter = delay * JITTER_FACTOR * (random.random() * 2 - 1)
                 sleep_duration = min(MAX_RECONNECT_DELAY_S, abs(delay + jitter))
-                logger.info(f"[{self.venue_name}] Reconnecting in {sleep_duration:.2f} seconds.")
+                logger.info(
+                    f"[{self.venue_name}] Reconnecting in {sleep_duration:.2f} seconds."
+                )
                 try:
                     await asyncio.sleep(sleep_duration)
                 except asyncio.CancelledError:
@@ -140,9 +149,11 @@ class ExchangeAdapter(abc.ABC):
             yield {}
 
     @abc.abstractmethod
-    def _normalize_message(self, message: dict[str, Any]) -> models_pb2.PriceUpdate | None:
+    def _normalize_message(
+        self, message: dict[str, Any]
+    ) -> models_pb2.PriceUpdate | None:
         """
-        Normalizes a raw, exchange-specific message into the canonical PriceUpdate model.
+        Normalizes a raw, exchange-specific message into the canonical PriceUpdate.
 
         Args:
             message: The raw message dictionary received from the WebSocket.
@@ -169,176 +180,4 @@ class ExchangeAdapter(abc.ABC):
         Returns:
             A list of populated Candle protobuf messages.
         """
-        raise NotImplementedError```
-
-### `tests/unit/test_adapters_base.py` — Tests for the base adapter logic and contracts.
-
-```python
-import asyncio
-from collections.abc import AsyncGenerator
-from datetime import datetime
-from typing import Any
-
-import httpx
-import pytest
-import websockets
-from pytest_mock import MockerFixture
-
-from cryptochart.adapters.base import (
-    INITIAL_RECONNECT_DELAY_S,
-    RECONNECT_BACKOFF_FACTOR,
-    ExchangeAdapter,
-)
-from cryptochart.types import models_pb2
-
-
-class MockExchangeAdapter(ExchangeAdapter):
-    """A concrete implementation of ExchangeAdapter for testing purposes."""
-
-    def __init__(self, *args: Any, **kwargs: Any):
-        super().__init__(*args, **kwargs)
-        self.connection_attempts = 0
-        self.stream_generator: AsyncGenerator[dict[str, Any], None] = self._default_stream_generator()
-
-    @property
-    def venue_name(self) -> str:
-        return "mockex"
-
-    def set_stream_generator(self, generator: AsyncGenerator[dict[str, Any], None]) -> None:
-        self.stream_generator = generator
-
-    async def _stream_messages(self) -> AsyncGenerator[dict[str, Any], None]:
-        self.connection_attempts += 1
-        async for message in self.stream_generator:
-            yield message
-
-    def _normalize_message(self, message: dict[str, Any]) -> models_pb2.PriceUpdate | None:
-        if message.get("type") == "trade":
-            return models_pb2.PriceUpdate(symbol=message["symbol"], price=str(message["price"]))
-        return None
-
-    async def get_historical_candles(
-        self, symbol: str, timeframe: str, start_dt: datetime, end_dt: datetime
-    ) -> list[models_pb2.Candle]:
-        return []
-
-    async def _default_stream_generator(self) -> AsyncGenerator[dict[str, Any], None]:
-        yield {"type": "trade", "symbol": "BTC/USD", "price": 50000}
-        yield {"type": "heartbeat"}
-        yield {"type": "trade", "symbol": "ETH/USD", "price": 4000}
-
-
-@pytest.fixture
-def mock_adapter() -> MockExchangeAdapter:
-    """Provides a fresh MockExchangeAdapter instance for each test."""
-    return MockExchangeAdapter(
-        symbols=["BTC/USD", "ETH/USD"],
-        output_queue=asyncio.Queue(),
-        http_client=httpx.AsyncClient(),
-    )
-
-
-@pytest.mark.asyncio
-async def test_start_stop_lifecycle(mock_adapter: MockExchangeAdapter) -> None:
-    """Tests the basic start and stop functionality."""
-    assert mock_adapter._main_task is None
-    mock_adapter.start()
-    assert isinstance(mock_adapter._main_task, asyncio.Task)
-    assert not mock_adapter._main_task.done()
-
-    await mock_adapter.stop()
-    assert mock_adapter._main_task is None or mock_adapter._main_task.done()
-    assert not mock_adapter._running.is_set()
-
-
-@pytest.mark.asyncio
-async def test_successful_stream_and_processing(mock_adapter: MockExchangeAdapter) -> None:
-    """Tests a normal run where messages are received and put on the queue."""
-    mock_adapter.start()
-
-    update1 = await asyncio.wait_for(mock_adapter.output_queue.get(), timeout=1)
-    update2 = await asyncio.wait_for(mock_adapter.output_queue.get(), timeout=1)
-
-    assert mock_adapter.output_queue.empty()
-    assert update1.symbol == "BTC/USD" and update1.price == "50000"
-    assert update2.symbol == "ETH/USD" and update2.price == "4000"
-
-    await mock_adapter.stop()
-
-
-@pytest.mark.asyncio
-async def test_reconnect_on_connection_closed(
-    mock_adapter: MockExchangeAdapter, mocker: MockerFixture
-) -> None:
-    """Tests that the adapter tries to reconnect after a connection error."""
-    sleep_spy = mocker.patch("asyncio.sleep", return_value=None)
-
-    async def error_generator() -> AsyncGenerator[dict[str, Any], None]:
-        yield {"type": "trade", "symbol": "BTC/USD", "price": 1}
-        raise websockets.exceptions.ConnectionClosedError(None, None)
-
-    mock_adapter.set_stream_generator(error_generator())
-    mock_adapter.start()
-
-    await mock_adapter.output_queue.get()
-    await asyncio.sleep(0.01)  # Allow loop to process exception and call sleep
-
-    assert mock_adapter.connection_attempts == 1
-    sleep_spy.assert_called_once()
-    assert sleep_spy.call_args[0][0] > 0
-
-    await mock_adapter.stop()
-
-
-@pytest.mark.asyncio
-async def test_reconnect_exponential_backoff(
-    mock_adapter: MockExchangeAdapter, mocker: MockerFixture
-) -> None:
-    """Tests that the reconnect delay increases exponentially."""
-    sleep_spy = mocker.patch("asyncio.sleep", return_value=None)
-
-    async def always_fail_generator() -> AsyncGenerator[dict[str, Any], None]:
-        raise websockets.exceptions.ConnectionClosedError(None, None)
-        yield  # Make it a generator
-
-    mock_adapter.set_stream_generator(always_fail_generator())
-    mock_adapter.start()
-
-    await asyncio.sleep(0.01)
-    assert mock_adapter.connection_attempts == 1
-    sleep_spy.assert_called_once()
-    first_delay = sleep_spy.call_args[0][0]
-    assert first_delay == pytest.approx(INITIAL_RECONNECT_DELAY_S, abs=INITIAL_RECONNECT_DELAY_S * 0.2)
-
-    await asyncio.sleep(0.01)
-    assert mock_adapter.connection_attempts == 2
-    assert sleep_spy.call_count == 2
-    second_delay = sleep_spy.call_args[0][0]
-    expected_second_delay = INITIAL_RECONNECT_DELAY_S * RECONNECT_BACKOFF_FACTOR
-    assert second_delay == pytest.approx(expected_second_delay, abs=expected_second_delay * 0.2)
-
-    await mock_adapter.stop()
-
-
-@pytest.mark.asyncio
-async def test_stop_during_reconnect_sleep(
-    mock_adapter: MockExchangeAdapter, mocker: MockerFixture
-) -> None:
-    """Tests that the adapter can be stopped while waiting to reconnect."""
-    sleep_future = asyncio.Future()
-    mocker.patch("asyncio.sleep", side_effect=lambda delay: sleep_future)
-
-    async def fail_once_generator() -> AsyncGenerator[dict[str, Any], None]:
-        raise websockets.exceptions.ConnectionClosedError(None, None)
-        yield
-
-    mock_adapter.set_stream_generator(fail_once_generator())
-    mock_adapter.start()
-
-    await asyncio.sleep(0.01)
-    assert mock_adapter.connection_attempts == 1
-
-    await mock_adapter.stop()
-
-    assert mock_adapter._main_task is None or mock_adapter._main_task.done()
-    assert sleep_future.cancelled()
+        raise NotImplementedError
