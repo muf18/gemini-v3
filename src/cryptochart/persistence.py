@@ -36,7 +36,8 @@ FLUSH_INTERVAL_SECONDS: float = 10.0
 
 
 class Persistence:
-    """Handles optional, non-blocking writing of aggregated data to CSV files.
+    """
+    Handles optional, non-blocking writing of aggregated data to CSV files.
 
     This component runs as a dedicated background task, consuming data from a
     queue. It batches writes to minimize I/O overhead and uses `aiofiles` to
