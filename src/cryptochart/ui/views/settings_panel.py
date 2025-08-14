@@ -1,6 +1,7 @@
 import asyncio
 from typing import TYPE_CHECKING
 
+from loguru import logger
 from PySide6.QtCore import Qt, Slot
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -12,7 +13,6 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from loguru import logger
 
 # Use a forward reference for type hinting to avoid circular imports
 if TYPE_CHECKING:
@@ -45,6 +45,7 @@ class SettingsPanel(QDialog):
         super().__init__(parent)
         self._persistence = persistence_manager
         self._settings = app_settings
+        self._csv_toggle_task: asyncio.Task[None] | None = None
 
         self.setWindowTitle("Application Settings")
         self.setMinimumWidth(450)
@@ -67,11 +68,9 @@ class SettingsPanel(QDialog):
         # --- Dialog Buttons ---
         button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
         button_box.rejected.connect(self.reject)
-        button_box.accepted.connect(self.accept) # Allow closing with Enter key
         # Since we have a close button, we connect 'accepted' to 'reject'
         button_box.accepted.connect(self.reject)
         button_box.button(QDialogButtonBox.StandardButton.Close).setDefault(True)
-
 
         main_layout.addWidget(button_box)
 
@@ -93,7 +92,9 @@ class SettingsPanel(QDialog):
         # CSV Directory Info
         csv_dir_label = QLabel("Output Directory:")
         csv_dir_value = QLabel(f"<code>{self._persistence.output_directory}</code>")
-        csv_dir_value.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        csv_dir_value.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
 
         layout.addRow(self._csv_toggle_checkbox)
         layout.addRow(csv_dir_label, csv_dir_value)
@@ -113,9 +114,9 @@ class SettingsPanel(QDialog):
 
             clean_name = exchange_name.replace("_enabled", "").capitalize()
             status_label = QLabel(
-                f"<font color='green'>Enabled</font>"
+                "<font color='green'>Enabled</font>"
                 if is_enabled
-                else f"<font color='red'>Disabled</font>"
+                else "<font color='red'>Disabled</font>"
             )
             layout.addRow(f"{clean_name}:", status_label)
 
@@ -140,9 +141,11 @@ class SettingsPanel(QDialog):
         Args:
             state: The new state of the checkbox (Qt.CheckState enum value).
         """
-        is_enabled = (state == Qt.CheckState.Checked.value)
+        is_enabled = state == Qt.CheckState.Checked.value
         logger.info(f"Settings panel toggling CSV persistence to: {is_enabled}")
 
         # Since the target method is async, we must not block the GUI thread.
         # We create a task to run the coroutine on the active asyncio event loop.
-        asyncio.create_task(self._persistence.set_enabled(is_enabled))
+        self._csv_toggle_task = asyncio.create_task(
+            self._persistence.set_enabled(is_enabled)
+        )

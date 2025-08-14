@@ -5,14 +5,12 @@ import pytest
 
 from cryptochart.normalizer import Normalizer
 from cryptochart.types import models_pb2
-from cryptochart.utils.time import normalize_timestamp_to_rfc3339
 
 
 @pytest.fixture
-def queues() -> tuple[
-    "asyncio.Queue[models_pb2.PriceUpdate]",
-    "asyncio.Queue[models_pb2.PriceUpdate]",
-]:
+def queues() -> (
+    tuple["asyncio.Queue[models_pb2.PriceUpdate]", "asyncio.Queue[models_pb2.PriceUpdate]"]
+):
     """Provides a tuple of input and output asyncio Queues."""
     return asyncio.Queue(), asyncio.Queue()
 
@@ -50,8 +48,9 @@ async def test_message_processing_and_enrichment(
     ],
 ) -> None:
     """
-    Tests that a message is correctly taken from the input queue,
-    enriched, and put onto the output queue.
+    Tests that a message is correctly taken from the input queue.
+
+    It should be enriched and put onto the output queue.
     """
     input_queue, output_queue = queues
 
@@ -101,14 +100,16 @@ async def test_message_processing_and_enrichment(
 @pytest.mark.asyncio
 async def test_graceful_shutdown_while_waiting(normalizer: Normalizer) -> None:
     """
-    Tests that the normalizer can be stopped cleanly even when it's
-    blocked waiting for an item on the input queue.
+    Tests that the normalizer can be stopped cleanly.
+
+    This should work even when it's blocked waiting for an item on the input queue.
     """
     normalizer.start()
 
     # Give the task a moment to start and block on `input_queue.get()`
     await asyncio.sleep(0.01)
-    assert normalizer._task is not None and not normalizer._task.done()
+    assert normalizer._task is not None
+    assert not normalizer._task.done()
 
     # Stop the normalizer
     await normalizer.stop()
@@ -147,7 +148,7 @@ async def test_multiple_messages_are_processed_in_order(
 
     # Verify the order and enrichment
     assert len(messages_out) == len(messages_in)
-    for i, (msg_in, msg_out) in enumerate(zip(messages_in, messages_out)):
+    for msg_in, msg_out in zip(messages_in, messages_out, strict=True):
         assert msg_out.sequence_number == msg_in.sequence_number
         assert msg_out.price == msg_in.price
         assert len(msg_out.client_received_timestamp) > 0

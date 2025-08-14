@@ -1,7 +1,6 @@
 import time
 from collections import deque
-from datetime import datetime
-from decimal import Decimal
+from datetime import datetime, timezone
 
 import numpy as np
 import pyqtgraph as pg
@@ -33,13 +32,17 @@ class DateAxis(pg.AxisItem):
         else:
             string_format = "%Y-%m-%d"
 
-        return [datetime.fromtimestamp(v).strftime(string_format) for v in values]
+        return [
+            datetime.fromtimestamp(v, tz=timezone.utc).strftime(string_format)
+            for v in values
+        ]
 
 
 class ChartView(QWidget):
     """
-    A high-performance charting widget using PyQtGraph for displaying
-    financial data, including candlesticks, volume, and VWAP overlays.
+    A high-performance charting widget for financial data.
+
+    Uses PyQtGraph for displaying candlesticks, volume, and VWAP overlays.
     """
 
     def __init__(self, parent: QWidget | None = None) -> None:
@@ -61,7 +64,9 @@ class ChartView(QWidget):
         layout.setSpacing(0)
 
         # Create the main plot area for price and candlesticks
-        self._price_plot = pg.PlotWidget(axisItems={"bottom": DateAxis(orientation="bottom")})
+        self._price_plot = pg.PlotWidget(
+            axisItems={"bottom": DateAxis(orientation="bottom")}
+        )
         self._price_plot.setLabel("left", "Price")
         self._price_plot.showGrid(x=True, y=True, alpha=0.3)
         self._price_plot.setLogMode(x=False, y=False)
@@ -69,7 +74,9 @@ class ChartView(QWidget):
         self._price_plot.getPlotItem().setClipToView(True)
 
         # Create the volume plot area
-        self._volume_plot = pg.PlotWidget(axisItems={"bottom": DateAxis(orientation="bottom")})
+        self._volume_plot = pg.PlotWidget(
+            axisItems={"bottom": DateAxis(orientation="bottom")}
+        )
         self._volume_plot.setMaximumHeight(150)
         self._volume_plot.setLabel("left", "Volume")
         self._volume_plot.showGrid(x=True, y=True, alpha=0.3)
@@ -98,7 +105,9 @@ class ChartView(QWidget):
 
         # Improve zooming/panning behavior
         self._price_plot.setMouseEnabled(x=True, y=True)
-        self._price_plot.setViewportUpdateMode(QGraphicsView.ViewportUpdateMode.FullViewportUpdate)
+        self._price_plot.setViewportUpdateMode(
+            QGraphicsView.ViewportUpdateMode.FullViewportUpdate
+        )
 
     def set_symbol(self, symbol: str, timeframe_seconds: int) -> None:
         """Sets the current symbol and timeframe, updating titles."""
@@ -132,7 +141,9 @@ class ChartView(QWidget):
         self._volume_data = np.zeros((num_candles, 2))
 
         for i, c in enumerate(candles):
-            ts = datetime.fromisoformat(c.open_time.replace("Z", "+00:00")).timestamp()
+            ts = datetime.fromisoformat(
+                c.open_time.replace("Z", "+00:00")
+            ).timestamp()
             self._candle_data[i] = (
                 ts,
                 float(c.open),
@@ -154,7 +165,11 @@ class ChartView(QWidget):
 
     def update_realtime_data(self, update: models_pb2.PriceUpdate) -> None:
         """Updates the chart with a new real-time trade update."""
-        if self._candle_data is None or self._volume_data is None or self._timeframe_seconds is None:
+        if (
+            self._candle_data is None
+            or self._volume_data is None
+            or self._timeframe_seconds is None
+        ):
             return
 
         try:

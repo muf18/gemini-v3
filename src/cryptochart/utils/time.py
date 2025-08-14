@@ -15,8 +15,9 @@ MICROSECONDS_THRESHOLD = 10**13
 
 def get_current_rfc3339_timestamp() -> str:
     """
-    Returns the current time in UTC as an RFC3339 formatted string
-    with millisecond precision.
+    Returns the current time in UTC as an RFC3339 formatted string.
+
+    The timestamp has millisecond precision.
 
     Example: "2023-10-27T10:00:00.123Z"
 
@@ -69,7 +70,7 @@ def normalize_timestamp_to_rfc3339(timestamp: Any) -> str:
             # Convert timezone-aware datetimes to UTC.
             dt_obj = dt_obj.astimezone(timezone.utc)
 
-    elif isinstance(timestamp, (int, float)):
+    elif isinstance(timestamp, int | float):
         # Heuristic to determine if the timestamp is in s, ms, or µs.
         if timestamp > MICROSECONDS_THRESHOLD:
             ts_seconds = timestamp / 1_000_000
@@ -80,7 +81,9 @@ def normalize_timestamp_to_rfc3339(timestamp: Any) -> str:
         try:
             dt_obj = datetime.fromtimestamp(ts_seconds, tz=timezone.utc)
         except (OSError, ValueError) as e:
-            raise ValueError(f"Numeric timestamp '{timestamp}' is out of range.") from e
+            raise ValueError(
+                f"Numeric timestamp '{timestamp}' is out of range."
+            ) from e
 
     elif isinstance(timestamp, str):
         try:
@@ -97,11 +100,11 @@ def normalize_timestamp_to_rfc3339(timestamp: Any) -> str:
         except ValueError as e:
             # Fallback for other common formats could be added here if needed.
             logger.warning(f"Could not parse timestamp string '{timestamp}': {e}")
-            raise ValueError(f"Invalid or unrecognized timestamp string format: {timestamp}") from e
+            raise ValueError(
+                f"Invalid or unrecognized timestamp string format: {timestamp}"
+            ) from e
 
     else:
-        raise ValueError(
-            f"Unsupported timestamp type: {type(timestamp).__name__}"
-        )
+        raise ValueError(f"Unsupported timestamp type: {type(timestamp).__name__}")
 
     return dt_obj.isoformat(timespec="milliseconds").replace("+00:00", "Z")

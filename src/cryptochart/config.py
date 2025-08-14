@@ -2,7 +2,7 @@ import sys
 import tomllib
 from dataclasses import dataclass, field, is_dataclass
 from pathlib import Path
-from typing import Any, ClassVar, Type, TypeVar
+from typing import Any, ClassVar, TypeVar
 
 import keyring
 from loguru import logger
@@ -77,11 +77,7 @@ class Settings:
 def _merge_dicts(base: dict[str, Any], new: dict[str, Any]) -> dict[str, Any]:
     """Recursively merges two dictionaries."""
     for key, value in new.items():
-        if (
-            key in base
-            and isinstance(base[key], dict)
-            and isinstance(value, dict)
-        ):
+        if key in base and isinstance(base[key], dict) and isinstance(value, dict):
             base[key] = _merge_dicts(base[key], value)
         else:
             base[key] = value
@@ -150,6 +146,7 @@ def load_config(path: Path = CONFIG_FILE) -> Settings:
 
 # --- Keyring Management ---
 
+
 def get_api_credentials(exchange_name: str) -> tuple[str | None, str | None]:
     """
     Retrieves API key and secret for a given exchange from the system keyring.
@@ -162,9 +159,7 @@ def get_api_credentials(exchange_name: str) -> tuple[str | None, str | None]:
     """
     exchange_name = exchange_name.lower()
     try:
-        api_key = keyring.get_password(
-            KEYRING_SERVICE_NAME, f"{exchange_name}_key"
-        )
+        api_key = keyring.get_password(KEYRING_SERVICE_NAME, f"{exchange_name}_key")
         api_secret = keyring.get_password(
             KEYRING_SERVICE_NAME, f"{exchange_name}_secret"
         )
@@ -176,9 +171,7 @@ def get_api_credentials(exchange_name: str) -> tuple[str | None, str | None]:
         return None, None
 
 
-def set_api_credentials(
-    exchange_name: str, api_key: str, api_secret: str
-) -> None:
+def set_api_credentials(exchange_name: str, api_key: str, api_secret: str) -> None:
     """
     Stores API key and secret for an exchange in the system keyring.
 
@@ -189,13 +182,13 @@ def set_api_credentials(
     """
     exchange_name = exchange_name.lower()
     try:
-        keyring.set_password(
-            KEYRING_SERVICE_NAME, f"{exchange_name}_key", api_key
-        )
+        keyring.set_password(KEYRING_SERVICE_NAME, f"{exchange_name}_key", api_key)
         keyring.set_password(
             KEYRING_SERVICE_NAME, f"{exchange_name}_secret", api_secret
         )
-        logger.info(f"Successfully stored credentials for '{exchange_name}' in keyring.")
+        logger.info(
+            f"Successfully stored credentials for '{exchange_name}' in keyring."
+        )
     except Exception as e:
         logger.error(f"Could not store credentials in keyring: {e}")
 

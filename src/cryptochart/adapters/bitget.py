@@ -1,6 +1,5 @@
 import asyncio
 import json
-import time
 from collections.abc import AsyncGenerator
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -14,9 +13,7 @@ from cryptochart.utils.time import normalize_timestamp_to_rfc3339
 
 
 class BitgetAdapter(ExchangeAdapter):
-    """
-    Adapter for connecting to the Bitget WebSocket and REST APIs.
-    """
+    """Adapter for connecting to the Bitget WebSocket and REST APIs."""
 
     _BASE_WSS_URL: str = "wss://ws.bitget.com/v2/spot/public"
     _BASE_API_URL: str = "https://api.bitget.com/api/v2/spot"
@@ -57,10 +54,7 @@ class BitgetAdapter(ExchangeAdapter):
         return granularity_map[timeframe]
 
     async def _stream_messages(self) -> AsyncGenerator[dict[str, Any], None]:
-        """
-        Connects to the WebSocket, subscribes to the 'trade' channel,
-        handles heartbeats, and yields incoming trade messages.
-        """
+        """Connects to the WebSocket, subscribes, and yields trade messages."""
         args = [
             {
                 "instType": "SPOT",
@@ -73,14 +67,19 @@ class BitgetAdapter(ExchangeAdapter):
 
         async with websockets.connect(self._BASE_WSS_URL) as websocket:
             await websocket.send(json.dumps(subscription_message))
-            logger.info(f"[{self.venue_name}] Subscribed to 'trade' for: {[a['instId'] for a in args]}")
+            logger.info(
+                f"[{self.venue_name}] Subscribed to 'trade' for: "
+                f"{[a['instId'] for a in args]}"
+            )
 
             while True:
                 try:
                     message_raw = await asyncio.wait_for(websocket.recv(), timeout=25.0)
                 except asyncio.TimeoutError:
                     await websocket.send("ping")
-                    logger.debug(f"[{self.venue_name}] Sent ping to keep connection alive.")
+                    logger.debug(
+                        f"[{self.venue_name}] Sent ping to keep connection alive."
+                    )
                     continue
 
                 if message_raw == "pong":
@@ -91,12 +90,19 @@ class BitgetAdapter(ExchangeAdapter):
 
                 if "event" in message:
                     if message["event"] == "subscribe":
-                        logger.debug(f"[{self.venue_name}] Subscription confirmation: {message['arg']}")
+                        logger.debug(
+                            f"[{self.venue_name}] Subscription confirmation: "
+                            f"{message['arg']}"
+                        )
                     elif message["event"] == "error":
                         logger.error(f"[{self.venue_name}] Received error: {message}")
                     continue
 
-                if "action" in message and "arg" in message and message["arg"]["channel"] == "trade":
+                if (
+                    "action" in message
+                    and "arg" in message
+                    and message["arg"]["channel"] == "trade"
+                ):
                     # Both snapshot and update actions contain trade data
                     for trade_data in message["data"]:
                         # Add instId to each trade for normalization
@@ -106,12 +112,14 @@ class BitgetAdapter(ExchangeAdapter):
                         }
                         yield trade_with_symbol
                 else:
-                    logger.debug(f"[{self.venue_name}] Received other message: {message}")
+                    logger.debug(
+                        f"[{self.venue_name}] Received other message: {message}"
+                    )
 
-    def _normalize_message(self, message: dict[str, Any]) -> models_pb2.PriceUpdate | None:
-        """
-        Normalizes a raw trade data object from Bitget into a canonical PriceUpdate.
-        """
+    def _normalize_message(
+        self, message: dict[str, Any]
+    ) -> models_pb2.PriceUpdate | None:
+        """Normalizes a raw trade data object from Bitget into a PriceUpdate."""
         try:
             # Data format: [timestamp_ms, price, size, side]
             trade_info = message["trade"]
@@ -127,15 +135,16 @@ class BitgetAdapter(ExchangeAdapter):
                 exchange_timestamp=normalize_timestamp_to_rfc3339(ts_ms),
             )
         except (KeyError, ValueError, TypeError, IndexError) as e:
-            logger.warning(f"[{self.venue_name}] Could not parse trade message: {message}. Error: {e}")
+            logger.warning(
+                f"[{self.venue_name}] Could not parse trade message: {message}. "
+                f"Error: {e}"
+            )
             return None
 
     async def get_historical_candles(
         self, symbol: str, timeframe: str, start_dt: datetime, end_dt: datetime
     ) -> list[models_pb2.Candle]:
-        """
-        Fetches historical OHLCV data from Bitget's REST API, handling pagination.
-        """
+        """Fetches historical OHLCV data from Bitget's REST API."""
         venue_symbol = self._normalize_symbol_to_venue(symbol)
         granularity = self._map_timeframe_to_granularity(timeframe)
         all_candles: list[models_pb2.Candle] = []
@@ -144,7 +153,10 @@ class BitgetAdapter(ExchangeAdapter):
         current_end_ms = int(end_dt.timestamp() * 1000)
         start_ms = int(start_dt.timestamp() * 1000)
 
-        logger.info(f"[{self.venue_name}] Fetching historical data for {symbol} from {start_dt} to {end_dt}")
+        logger.info(
+            f"[{self.venue_name}] Fetching historical data for {symbol} "
+            f"from {start_dt} to {end_dt}"
+        )
 
         while current_end_ms > start_ms:
             params = {
@@ -154,12 +166,17 @@ class BitgetAdapter(ExchangeAdapter):
                 "limit": max_candles_per_req,
             }
             try:
-                response = await self.http_client.get(f"{self._BASE_API_URL}/market/candles", params=params)
+                response = await self.http_client.get(
+                    f"{self._BASE_API_URL}/market/candles", params=params
+                )
                 response.raise_for_status()
                 data = response.json()
 
                 if data.get("code") != "00000":
-                    logger.error(f"[{self.venue_name}] API error fetching candles: {data.get('msg')}")
+                    logger.error(
+                        f"[{self.venue_name}] API error fetching candles: "
+                        f"{data.get('msg')}"
+                    )
                     break
 
                 candles_data = data.get("data", [])
@@ -170,46 +187,55 @@ class BitgetAdapter(ExchangeAdapter):
                     # Candle format: [ts_ms, open, high, low, close, base_vol, quote_vol]
                     ts_ms = int(c[0])
                     open_time = datetime.fromtimestamp(ts_ms / 1000, tz=timezone.utc)
+                    close_time = open_time + timedelta(
+                        seconds=self._map_granularity_to_seconds(granularity)
+                    )
                     all_candles.append(
                         models_pb2.Candle(
                             symbol=symbol,
                             timeframe=timeframe,
                             open_time=normalize_timestamp_to_rfc3339(open_time),
-                            # Bitget doesn't provide close time, so we calculate it
-                            close_time=normalize_timestamp_to_rfc3339(open_time + timedelta(seconds=self._map_granularity_to_seconds(granularity))),
+                            close_time=normalize_timestamp_to_rfc3339(close_time),
                             open=str(c[1]),
                             high=str(c[2]),
                             low=str(c[3]),
                             close=str(c[4]),
-                            volume=str(c[5]), # Base volume
+                            volume=str(c[5]),  # Base volume
                         )
                     )
-                
-                # Paginate backwards by setting the new endTime to the timestamp of the oldest candle received
+
+                # Paginate backwards by setting the new endTime to the timestamp
+                # of the oldest candle received
                 oldest_ts_in_batch = int(candles_data[-1][0])
-                current_end_ms = oldest_ts_in_batch - 1 # -1 to avoid getting the same candle again
+                current_end_ms = oldest_ts_in_batch - 1
 
             except Exception as e:
-                logger.error(f"[{self.venue_name}] Failed to fetch historical data for {symbol}: {e}")
+                logger.error(
+                    f"[{self.venue_name}] Failed to fetch historical data for "
+                    f"{symbol}: {e}"
+                )
                 break
 
         # Sort and de-duplicate
         unique_candles = {c.open_time: c for c in all_candles}
         sorted_candles = sorted(unique_candles.values(), key=lambda c: c.open_time)
-        
-        logger.success(f"[{self.venue_name}] Fetched {len(sorted_candles)} unique candles for {symbol}.")
+
+        logger.success(
+            f"[{self.venue_name}] Fetched {len(sorted_candles)} unique "
+            f"candles for {symbol}."
+        )
         return sorted_candles
 
     def _map_granularity_to_seconds(self, granularity: str) -> int:
         """Helper to convert Bitget granularity string to seconds."""
         unit = granularity[-1].lower()
         value = int(granularity[:-1])
-        if unit == 'm':
+        if unit == "m":
             return value * 60
-        if unit == 'h':
+        if unit == "h":
             return value * 3600
-        if unit == 'd':
+        if unit == "d":
             return value * 86400
-        if unit == 'w':
+        if unit == "w":
             return value * 604800
         return 0

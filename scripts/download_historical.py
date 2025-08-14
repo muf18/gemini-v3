@@ -1,11 +1,11 @@
 #!/usr/bin/env python
-"""A command-line utility to download historical candlestick data.
+r"""A command-line utility to download historical candlestick data.
 
 This script is useful for offline analysis, backtesting, or pre-populating
 a data store. It uses the application's adapter infrastructure to fetch data.
 
 Usage:
-    python scripts/download_historical.py <EXCHANGE> <SYMBOL> <TIMEFRAME> \\
+    python scripts/download_historical.py <EXCHANGE> <SYMBOL> <TIMEFRAME> \
         <START_DATE> [END_DATE]
 
 Example:
@@ -69,9 +69,14 @@ def print_usage() -> None:
     print("  SYMBOL:     The trading pair in 'BASE/QUOTE' format (e.g., BTC/USD).")
     print("  TIMEFRAME:  The candle interval (e.g., 1m, 5m, 1h, 1d).")
     print("  START_DATE: The start date in YYYY-MM-DD format.")
-    print("  END_DATE:   (Optional) The end date in YYYY-MM-DD format. Defaults to today.")
+    print(
+        "  END_DATE:   (Optional) The end date in YYYY-MM-DD format. "
+        "Defaults to today."
+    )
     print("\nExample:")
-    print("  python scripts/download_historical.py coinbase BTC/USD 1h 2023-01-01 2023-02-01")
+    print(
+        "  python scripts/download_historical.py coinbase BTC/USD 1h 2023-01-01 2023-02-01"
+    )
 
 
 async def main() -> int:
@@ -102,7 +107,9 @@ async def main() -> int:
         start_dt = datetime.strptime(start_date_str, "%Y-%m-%d").replace(
             tzinfo=timezone.utc
         )
-        end_dt = datetime.strptime(end_date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        end_dt = datetime.strptime(end_date_str, "%Y-%m-%d").replace(
+            tzinfo=timezone.utc
+        )
 
         if start_dt >= end_dt:
             logger.error("Start date must be before the end date.")
@@ -125,7 +132,9 @@ async def main() -> int:
         f"Fetching data for {symbol} ({timeframe}) from {start_date_str} to {end_date_str}..."
     )
     try:
-        candles = await adapter.get_historical_candles(symbol, timeframe, start_dt, end_dt)
+        candles = await adapter.get_historical_candles(
+            symbol, timeframe, start_dt, end_dt
+        )
     except Exception as e:
         logger.error(f"An error occurred during data fetching: {e}")
         return 1
@@ -133,9 +142,7 @@ async def main() -> int:
         await adapter.http_client.aclose()
 
     if not candles:
-        logger.warning(
-            "No data was returned from the exchange for the specified range."
-        )
+        logger.warning("No data was returned from the exchange for the specified range.")
         return 0
 
     logger.success(f"Successfully downloaded {len(candles)} candles.")

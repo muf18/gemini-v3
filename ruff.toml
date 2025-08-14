@@ -21,8 +21,6 @@ ignore = [
     "D100",   # Missing docstring in public module
     "D104",   # Missing docstring in public package
     "D107",   # Missing docstring in `__init__`
-    "ANN101", # Missing type annotation for `self` in method
-    "ANN102", # Missing type annotation for `cls` in classmethod
     "ANN401", # Dynamically-typed expressions (e.g., `Any`) are disallowed
     "FIX002", # Line contains `TODO`
     "TD002",  # Missing author in `TODO`

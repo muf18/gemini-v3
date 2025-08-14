@@ -1,6 +1,4 @@
 import asyncio
-from collections.abc import Coroutine
-from typing import Any
 
 from loguru import logger
 
@@ -97,7 +95,9 @@ class Normalizer:
                 logger.info("Normalizer run loop cancelled.")
                 break
             except Exception:
-                logger.exception("An unexpected error occurred in the Normalizer run loop.")
+                logger.exception(
+                    "An unexpected error occurred in the Normalizer run loop."
+                )
                 # Avoid a tight loop on continuous errors
                 await asyncio.sleep(1)
         logger.info("Normalizer run loop terminated.")

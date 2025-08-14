@@ -1,6 +1,4 @@
-import asyncio
 import json
-import time
 from collections.abc import AsyncGenerator
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -14,9 +12,7 @@ from cryptochart.utils.time import normalize_timestamp_to_rfc3339
 
 
 class BitvavoAdapter(ExchangeAdapter):
-    """
-    Adapter for connecting to the Bitvavo WebSocket and REST APIs.
-    """
+    """Adapter for connecting to the Bitvavo WebSocket and REST APIs."""
 
     _BASE_WSS_URL: str = "wss://ws.bitvavo.com/v2/"
     _BASE_API_URL: str = "https://api.bitvavo.com/v2"
@@ -43,10 +39,7 @@ class BitvavoAdapter(ExchangeAdapter):
         return timeframe
 
     async def _stream_messages(self) -> AsyncGenerator[dict[str, Any], None]:
-        """
-        Connects to the WebSocket, subscribes to the 'trades' channel,
-        and yields incoming trade messages.
-        """
+        """Connects to the WebSocket, subscribes, and yields trade messages."""
         venue_symbols = [self._normalize_symbol_to_venue(s) for s in self.symbols]
         subscription_message = {
             "action": "subscribe",
@@ -55,7 +48,9 @@ class BitvavoAdapter(ExchangeAdapter):
 
         async with websockets.connect(self._BASE_WSS_URL) as websocket:
             await websocket.send(json.dumps(subscription_message))
-            logger.info(f"[{self.venue_name}] Subscribed to 'trades' for: {venue_symbols}")
+            logger.info(
+                f"[{self.venue_name}] Subscribed to 'trades' for: {venue_symbols}"
+            )
 
             while True:
                 message_raw = await websocket.recv()
@@ -65,16 +60,20 @@ class BitvavoAdapter(ExchangeAdapter):
                     # The message data is a single trade object
                     yield message
                 elif message.get("event") == "subscribed":
-                    logger.debug(f"[{self.venue_name}] Subscription confirmation: {message}")
+                    logger.debug(
+                        f"[{self.venue_name}] Subscription confirmation: {message}"
+                    )
                 elif "error" in message:
                     logger.error(f"[{self.venue_name}] Received error: {message}")
                 else:
-                    logger.debug(f"[{self.venue_name}] Received other message: {message}")
+                    logger.debug(
+                        f"[{self.venue_name}] Received other message: {message}"
+                    )
 
-    def _normalize_message(self, message: dict[str, Any]) -> models_pb2.PriceUpdate | None:
-        """
-        Normalizes a raw WebSocket message from Bitvavo into a canonical PriceUpdate.
-        """
+    def _normalize_message(
+        self, message: dict[str, Any]
+    ) -> models_pb2.PriceUpdate | None:
+        """Normalizes a raw WebSocket message from Bitvavo into a PriceUpdate."""
         if message.get("event") != "trade":
             return None
 
@@ -92,15 +91,16 @@ class BitvavoAdapter(ExchangeAdapter):
                 exchange_timestamp=normalize_timestamp_to_rfc3339(ts_ns / 1e9),
             )
         except (KeyError, ValueError, TypeError) as e:
-            logger.warning(f"[{self.venue_name}] Could not parse trade message: {message}. Error: {e}")
+            logger.warning(
+                f"[{self.venue_name}] Could not parse trade message: {message}. "
+                f"Error: {e}"
+            )
             return None
 
     async def get_historical_candles(
         self, symbol: str, timeframe: str, start_dt: datetime, end_dt: datetime
     ) -> list[models_pb2.Candle]:
-        """
-        Fetches historical OHLCV data from Bitvavo's REST API, handling pagination.
-        """
+        """Fetches historical OHLCV data from Bitvavo's REST API."""
         venue_symbol = self._normalize_symbol_to_venue(symbol)
         interval = self._map_timeframe_to_interval(timeframe)
         all_candles: list[models_pb2.Candle] = []
@@ -109,7 +109,10 @@ class BitvavoAdapter(ExchangeAdapter):
         current_start_ms = int(start_dt.timestamp() * 1000)
         end_ms = int(end_dt.timestamp() * 1000)
 
-        logger.info(f"[{self.venue_name}] Fetching historical data for {symbol} from {start_dt} to {end_dt}")
+        logger.info(
+            f"[{self.venue_name}] Fetching historical data for {symbol} "
+            f"from {start_dt} to {end_dt}"
+        )
 
         while current_start_ms < end_ms:
             params = {
@@ -132,12 +135,15 @@ class BitvavoAdapter(ExchangeAdapter):
                     # Candle format: [timestamp_ms, open, high, low, close, volume]
                     ts_ms = int(c[0])
                     open_time = datetime.fromtimestamp(ts_ms / 1000, tz=timezone.utc)
+                    close_time = open_time + timedelta(
+                        seconds=self._map_interval_to_seconds(interval)
+                    )
                     all_candles.append(
                         models_pb2.Candle(
                             symbol=symbol,
                             timeframe=timeframe,
                             open_time=normalize_timestamp_to_rfc3339(open_time),
-                            close_time=normalize_timestamp_to_rfc3339(open_time + timedelta(seconds=self._map_interval_to_seconds(interval))),
+                            close_time=normalize_timestamp_to_rfc3339(close_time),
                             open=str(c[1]),
                             high=str(c[2]),
                             low=str(c[3]),
@@ -145,30 +151,36 @@ class BitvavoAdapter(ExchangeAdapter):
                             volume=str(c[5]),
                         )
                     )
-                
+
                 # Move to the next time window. The last candle's timestamp is the new start.
                 last_ts_in_batch = int(data[-1][0])
-                current_start_ms = last_ts_in_batch + 1 # +1 to avoid getting the same candle again
+                current_start_ms = last_ts_in_batch + 1
 
             except Exception as e:
-                logger.error(f"[{self.venue_name}] Failed to fetch historical data for {symbol}: {e}")
+                logger.error(
+                    f"[{self.venue_name}] Failed to fetch historical data for "
+                    f"{symbol}: {e}"
+                )
                 break
 
         # Sort and de-duplicate
         unique_candles = {c.open_time: c for c in all_candles}
         sorted_candles = sorted(unique_candles.values(), key=lambda c: c.open_time)
-        
-        logger.success(f"[{self.venue_name}] Fetched {len(sorted_candles)} unique candles for {symbol}.")
+
+        logger.success(
+            f"[{self.venue_name}] Fetched {len(sorted_candles)} unique "
+            f"candles for {symbol}."
+        )
         return sorted_candles
 
     def _map_interval_to_seconds(self, interval: str) -> int:
         """Helper to convert Bitvavo interval string to seconds."""
         unit = interval[-1]
         value = int(interval[:-1])
-        if unit == 'm':
+        if unit == "m":
             return value * 60
-        if unit == 'h':
+        if unit == "h":
             return value * 3600
-        if unit == 'd':
+        if unit == "d":
             return value * 86400
         return 0

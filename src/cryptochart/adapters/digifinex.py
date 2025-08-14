@@ -1,4 +1,3 @@
-import asyncio
 import json
 import time
 from collections.abc import AsyncGenerator
@@ -14,9 +13,7 @@ from cryptochart.utils.time import normalize_timestamp_to_rfc3339
 
 
 class DigifinexAdapter(ExchangeAdapter):
-    """
-    Adapter for connecting to the DigiFinex WebSocket and REST APIs.
-    """
+    """Adapter for connecting to the DigiFinex WebSocket and REST APIs."""
 
     _BASE_WSS_URL: str = "wss://openapi.digifinex.com/ws/v1/"
     _BASE_API_URL: str = "https://openapi.digifinex.com/v3"
@@ -56,11 +53,10 @@ class DigifinexAdapter(ExchangeAdapter):
         return period_map[timeframe]
 
     async def _stream_messages(self) -> AsyncGenerator[dict[str, Any], None]:
-        """
-        Connects to the WebSocket, subscribes to the 'trades' channel,
-        handles heartbeats, and yields incoming trade messages.
-        """
-        venue_symbols = [self._normalize_symbol_to_venue(s, for_ws=True) for s in self.symbols]
+        """Connects to the WebSocket, subscribes, and yields trade messages."""
+        venue_symbols = [
+            self._normalize_symbol_to_venue(s, for_ws=True) for s in self.symbols
+        ]
         subscription_message = {
             "id": int(time.time()),
             "method": "trades.subscribe",
@@ -69,7 +65,9 @@ class DigifinexAdapter(ExchangeAdapter):
 
         async with websockets.connect(self._BASE_WSS_URL) as websocket:
             await websocket.send(json.dumps(subscription_message))
-            logger.info(f"[{self.venue_name}] Subscribed to 'trades' for: {venue_symbols}")
+            logger.info(
+                f"[{self.venue_name}] Subscribed to 'trades' for: {venue_symbols}"
+            )
 
             while True:
                 message_raw = await websocket.recv()
@@ -78,7 +76,9 @@ class DigifinexAdapter(ExchangeAdapter):
                 if message.get("method") == "server.ping":
                     pong_message = {"id": None, "method": "server.pong", "params": []}
                     await websocket.send(json.dumps(pong_message))
-                    logger.debug(f"[{self.venue_name}] Responded to server ping with pong.")
+                    logger.debug(
+                        f"[{self.venue_name}] Responded to server ping with pong."
+                    )
                     continue
 
                 if message.get("method") == "trades.update":
@@ -89,16 +89,22 @@ class DigifinexAdapter(ExchangeAdapter):
                         trade["symbol"] = symbol  # Add symbol for normalization
                         yield trade
                 elif "result" in message and message.get("error") is None:
-                    logger.debug(f"[{self.venue_name}] Subscription confirmation: {message}")
+                    logger.debug(
+                        f"[{self.venue_name}] Subscription confirmation: {message}"
+                    )
                 elif "error" in message and message["error"] is not None:
-                    logger.error(f"[{self.venue_name}] Received error: {message['error']}")
+                    logger.error(
+                        f"[{self.venue_name}] Received error: {message['error']}"
+                    )
                 else:
-                    logger.debug(f"[{self.venue_name}] Received other message: {message}")
+                    logger.debug(
+                        f"[{self.venue_name}] Received other message: {message}"
+                    )
 
-    def _normalize_message(self, message: dict[str, Any]) -> models_pb2.PriceUpdate | None:
-        """
-        Normalizes a raw trade data object from DigiFinex into a canonical PriceUpdate.
-        """
+    def _normalize_message(
+        self, message: dict[str, Any]
+    ) -> models_pb2.PriceUpdate | None:
+        """Normalizes a raw trade data object from DigiFinex into a PriceUpdate."""
         try:
             return models_pb2.PriceUpdate(
                 symbol=self._normalize_symbol_from_venue(message["symbol"]),
@@ -110,7 +116,10 @@ class DigifinexAdapter(ExchangeAdapter):
                 exchange_timestamp=normalize_timestamp_to_rfc3339(message["time"]),
             )
         except (KeyError, ValueError, TypeError) as e:
-            logger.warning(f"[{self.venue_name}] Could not parse trade message: {message}. Error: {e}")
+            logger.warning(
+                f"[{self.venue_name}] Could not parse trade message: {message}. "
+                f"Error: {e}"
+            )
             return None
 
     async def get_historical_candles(
@@ -118,7 +127,9 @@ class DigifinexAdapter(ExchangeAdapter):
     ) -> list[models_pb2.Candle]:
         """
         Fetches historical OHLCV data from DigiFinex's REST API.
-        Note: This endpoint may have an undocumented limit on the number of candles returned.
+
+        Note: This endpoint may have an undocumented limit on the number of
+        candles returned.
         """
         venue_symbol = self._normalize_symbol_to_venue(symbol, for_ws=False)
         period = self._map_timeframe_to_period(timeframe)
@@ -130,15 +141,22 @@ class DigifinexAdapter(ExchangeAdapter):
             "start_time": int(start_dt.timestamp()),
             "end_time": int(end_dt.timestamp()),
         }
-        logger.info(f"[{self.venue_name}] Fetching historical data for {symbol} from {start_dt} to {end_dt}")
+        logger.info(
+            f"[{self.venue_name}] Fetching historical data for {symbol} "
+            f"from {start_dt} to {end_dt}"
+        )
 
         try:
-            response = await self.http_client.get(f"{self._BASE_API_URL}/kline", params=params)
+            response = await self.http_client.get(
+                f"{self._BASE_API_URL}/kline", params=params
+            )
             response.raise_for_status()
             data = response.json()
 
             if data.get("code") != 0:
-                logger.error(f"[{self.venue_name}] API error fetching candles: {data}")
+                logger.error(
+                    f"[{self.venue_name}] API error fetching candles: {data}"
+                )
                 return []
 
             candles_data = data.get("data", [])
@@ -149,12 +167,13 @@ class DigifinexAdapter(ExchangeAdapter):
                 # Candle format: [timestamp, volume, close, high, low, open]
                 ts = int(c[0])
                 open_time = datetime.fromtimestamp(ts, tz=timezone.utc)
+                close_time = open_time + timedelta(minutes=period)
                 all_candles.append(
                     models_pb2.Candle(
                         symbol=symbol,
                         timeframe=timeframe,
                         open_time=normalize_timestamp_to_rfc3339(open_time),
-                        close_time=normalize_timestamp_to_rfc3339(open_time + timedelta(minutes=period)),
+                        close_time=normalize_timestamp_to_rfc3339(close_time),
                         open=str(c[5]),
                         high=str(c[3]),
                         low=str(c[4]),
@@ -164,12 +183,18 @@ class DigifinexAdapter(ExchangeAdapter):
                 )
 
         except Exception as e:
-            logger.error(f"[{self.venue_name}] Failed to fetch historical data for {symbol}: {e}")
+            logger.error(
+                f"[{self.venue_name}] Failed to fetch historical data for "
+                f"{symbol}: {e}"
+            )
             return []
 
         # The API should return sorted data, but we sort just in case.
         unique_candles = {c.open_time: c for c in all_candles}
         sorted_candles = sorted(unique_candles.values(), key=lambda c: c.open_time)
-        
-        logger.success(f"[{self.venue_name}] Fetched {len(sorted_candles)} unique candles for {symbol}.")
+
+        logger.success(
+            f"[{self.venue_name}] Fetched {len(sorted_candles)} unique "
+            f"candles for {symbol}."
+        )
         return sorted_candles

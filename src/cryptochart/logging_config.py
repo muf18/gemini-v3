@@ -10,8 +10,9 @@ from loguru._defaults import LOGURU_FORMAT
 
 class InterceptHandler(logging.Handler):
     """
-    A custom logging handler to intercept standard logging messages
-    and redirect them to Loguru.
+    A custom logging handler to intercept standard logging messages.
+
+    This handler redirects standard logging messages to Loguru.
     """
 
     def emit(self, record: logging.LogRecord) -> None:
@@ -27,7 +28,7 @@ class InterceptHandler(logging.Handler):
             level = str(record.levelno)
 
         frame, depth = logging.currentframe(), 2
-        while frame.f_code.co_filename == logging.__file__:
+        while frame and frame.f_code.co_filename == logging.__file__:
             frame = cast(Any, frame.f_back)
             depth += 1
 
@@ -71,9 +72,7 @@ def _sensitive_data_filter(record: dict[str, Any]) -> bool:
 
 
 def _json_formatter(record: dict[str, Any]) -> str:
-    """
-    Custom formatter to structure log records as JSON.
-    """
+    """Custom formatter to structure log records as JSON."""
     log_object = {
         "timestamp": record["time"].isoformat(),
         "level": record["level"].name,
@@ -143,7 +142,7 @@ def setup_logging(
             serialize=False,  # We do custom serialization in the format function
             filter=_sensitive_data_filter,
             enqueue=True,  # Make logging calls non-blocking
-            backtrace=False, # Keep log files clean
+            backtrace=False,  # Keep log files clean
             diagnose=False,
         )
 

@@ -1,7 +1,7 @@
 import asyncio
 from collections.abc import Sequence
-from typing import cast
 
+from loguru import logger
 from PySide6.QtCore import Qt, Slot
 from PySide6.QtWidgets import (
     QDialog,
@@ -9,12 +9,10 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QListWidget,
-    QListWidgetItem,
     QMessageBox,
     QVBoxLayout,
     QWidget,
 )
-from loguru import logger
 
 # This is a forward reference; the actual adapters will implement this.
 from cryptochart.adapters.base import ExchangeAdapter
@@ -22,8 +20,9 @@ from cryptochart.adapters.base import ExchangeAdapter
 
 class PairSelectorDialog(QDialog):
     """
-    A dialog that fetches and displays tradable pairs from multiple exchanges,
-    allowing the user to search and select one.
+    A dialog that fetches and displays tradable pairs from multiple exchanges.
+
+    This allows the user to search and select a pair.
     """
 
     def __init__(
@@ -83,9 +82,7 @@ class PairSelectorDialog(QDialog):
         self._pair_list_widget.hide()
 
     async def populate_pairs(self) -> None:
-        """
-        Asynchronously fetches tradable pairs from all adapters and populates the list.
-        """
+        """Asynchronously fetches pairs from all adapters and populates the list."""
         logger.info("Starting to fetch tradable pairs from all adapters.")
         tasks = []
         for adapter in self._adapters:
@@ -95,7 +92,8 @@ class PairSelectorDialog(QDialog):
                 tasks.append(adapter.get_all_tradable_pairs())
             else:
                 logger.warning(
-                    f"Adapter '{adapter.venue_name}' does not have 'get_all_tradable_pairs' method."
+                    f"Adapter '{adapter.venue_name}' does not have "
+                    "'get_all_tradable_pairs' method."
                 )
 
         # Run all fetch tasks concurrently
@@ -106,16 +104,16 @@ class PairSelectorDialog(QDialog):
         for i, result in enumerate(results):
             adapter_name = self._adapters[i].venue_name
             if isinstance(result, Exception):
-                logger.error(
-                    f"Failed to fetch pairs from '{adapter_name}': {result}"
-                )
+                logger.error(f"Failed to fetch pairs from '{adapter_name}': {result}")
             elif isinstance(result, list):
                 logger.info(f"Fetched {len(result)} pairs from '{adapter_name}'.")
                 unique_pairs.update(result)
             else:
-                logger.warning(f"Unexpected result type from '{adapter_name}': {type(result)}")
+                logger.warning(
+                    f"Unexpected result type from '{adapter_name}': {type(result)}"
+                )
 
-        self._all_pairs = sorted(list(unique_pairs))
+        self._all_pairs = sorted(unique_pairs)
         logger.success(f"Found a total of {len(self._all_pairs)} unique pairs.")
 
         # Update UI
@@ -149,12 +147,12 @@ class PairSelectorDialog(QDialog):
             self._pair_list_widget.addItems(filtered_pairs)
 
     def accept(self) -> None:
-        """
-        Overrides QDialog.accept to store the selected pair before closing.
-        """
+        """Overrides QDialog.accept to store the selected pair before closing."""
         selected_items = self._pair_list_widget.selectedItems()
         if not selected_items:
-            QMessageBox.warning(self, "No Selection", "Please select a pair to continue.")
+            QMessageBox.warning(
+                self, "No Selection", "Please select a pair to continue."
+            )
             return
 
         self._selected_pair = selected_items[0].text()

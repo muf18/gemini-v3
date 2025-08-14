@@ -83,7 +83,7 @@ async def test_rolling_window_purges_old_trades(
 
     try:
         # 1. First trade
-        mocker.patch("time.time_ns", return_value=int(time.time() * 1e9))
+        mocker.patch("time.time_ns", return_value=int(1e9 * 1700000000))
         trade1 = create_trade("BTC/USD", "100", "1")
         updates1 = symbol_aggregator.process_update(trade1)
         update1_1m = next(u for u in updates1 if u.timeframe == "1m")
@@ -92,7 +92,7 @@ async def test_rolling_window_purges_old_trades(
 
         # 2. Wait for the window to pass
         await asyncio.sleep(1.1)
-        mocker.patch("time.time_ns", return_value=int((time.time() + 1.1) * 1e9))
+        mocker.patch("time.time_ns", return_value=int(1e9 * 1700000001.1))
 
         # 3. Second trade
         trade2 = create_trade("BTC/USD", "200", "2")

@@ -84,7 +84,9 @@ class Persistence:
             if self._enabled == enabled:
                 return  # No change
             self._enabled = enabled
-            logger.info(f"CSV persistence has been {'ENABLED' if enabled else 'DISABLED'}.")
+            logger.info(
+                f"CSV persistence has been {'ENABLED' if enabled else 'DISABLED'}."
+            )
             if not enabled:
                 # Flush any remaining data in the buffer before stopping.
                 await self._flush_buffer()
@@ -95,7 +97,9 @@ class Persistence:
             self._running.set()
             self.output_directory.mkdir(parents=True, exist_ok=True)
             self._task = asyncio.create_task(self._run())
-            logger.info(f"Persistence engine started. Output dir: '{self.output_directory}'")
+            logger.info(
+                f"Persistence engine started. Output dir: '{self.output_directory}'"
+            )
         else:
             logger.warning("Persistence engine is already running.")
 

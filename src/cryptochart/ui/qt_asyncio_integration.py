@@ -4,8 +4,8 @@ from collections.abc import Coroutine
 from typing import Any
 
 import qt_asyncio
-from PySide6.QtWidgets import QApplication
 from loguru import logger
+from PySide6.QtWidgets import QApplication
 
 
 def run_with_asyncio(main_coro: Coroutine[Any, Any, int]) -> int:
@@ -38,7 +38,10 @@ def run_with_asyncio(main_coro: Coroutine[Any, Any, int]) -> int:
         asyncio.set_event_loop(loop)
         logger.info("QAsyncioEventLoop installed as the current asyncio event loop.")
     except Exception:
-        logger.exception("Failed to set up the QAsyncioEventLoop. The application may not function correctly.")
+        logger.exception(
+            "Failed to set up the QAsyncioEventLoop. The application may not "
+            "function correctly."
+        )
         # Fallback to a standard loop if qt_asyncio fails, though this is unlikely.
         loop = asyncio.get_event_loop()
 
@@ -58,7 +61,9 @@ def run_with_asyncio(main_coro: Coroutine[Any, Any, int]) -> int:
         if main_task.done() and not main_task.cancelled():
             exception = main_task.exception()
             if exception:
-                logger.error(f"The main application task exited with an exception: {exception}")
+                logger.error(
+                    f"The main application task exited with an exception: {exception}"
+                )
                 # Propagate the exception for debugging purposes if not handled.
                 raise exception
             exit_code = main_task.result()

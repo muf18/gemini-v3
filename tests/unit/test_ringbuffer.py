@@ -10,12 +10,12 @@ def test_initialization() -> None:
     assert len(buf) == 0
     assert not buf.is_full
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Capacity must be a positive integer."):
         RingBuffer[int](0)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Capacity must be a positive integer."):
         RingBuffer[int](-1)
-    with pytest.raises(ValueError):
-        RingBuffer[float](2.5)  # type: ignore
+    with pytest.raises(ValueError, match="Capacity must be a positive integer."):
+        RingBuffer[float](2.5)  # type: ignore[arg-type]
 
 
 def test_append_and_len() -> None:
@@ -156,12 +156,12 @@ def test_iteration() -> None:
     buf.extend(items)
 
     # Test __iter__
-    collected = [item for item in buf]
+    collected = list(buf)
     assert collected == items
 
     # Test that it works after overflow
     buf.append(40)  # Now contains [20, 30, 40]
-    collected_after_overflow = [item for item in buf]
+    collected_after_overflow = list(buf)
     assert collected_after_overflow == [20, 30, 40]
 
 

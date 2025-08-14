@@ -108,7 +108,9 @@ class Publisher:
                     del self._subscriptions[key]
                     logger.debug(f"Removed empty subscription key: {key}.")
             else:
-                logger.warning(f"Subscription key {key} or ID {sub_id} not found during unsubscribe.")
+                logger.warning(
+                    f"Subscription key {key} or ID {sub_id} not found during unsubscribe."
+                )
 
     async def _run(self) -> None:
         """The main processing loop that fans out messages."""

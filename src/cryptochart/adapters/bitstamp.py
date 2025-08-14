@@ -1,4 +1,3 @@
-import asyncio
 import json
 from collections.abc import AsyncGenerator
 from datetime import datetime, timedelta, timezone
@@ -13,9 +12,7 @@ from cryptochart.utils.time import normalize_timestamp_to_rfc3339
 
 
 class BitstampAdapter(ExchangeAdapter):
-    """
-    Adapter for connecting to the Bitstamp WebSocket and REST APIs.
-    """
+    """Adapter for connecting to the Bitstamp WebSocket and REST APIs."""
 
     _BASE_WSS_URL: str = "wss://ws.bitstamp.net"
     _BASE_API_URL: str = "https://www.bitstamp.net/api/v2"
@@ -38,7 +35,9 @@ class BitstampAdapter(ExchangeAdapter):
 
     def _normalize_symbol_from_venue(self, venue_symbol: str) -> str:
         """Converts Bitstamp's 'basequote' symbol back to 'BASE/QUOTE' format."""
-        return self._venue_to_standard_symbol_map.get(venue_symbol, venue_symbol.upper())
+        return self._venue_to_standard_symbol_map.get(
+            venue_symbol, venue_symbol.upper()
+        )
 
     def _map_timeframe_to_step(self, timeframe: str) -> int:
         """Maps a standard timeframe string to Bitstamp's 'step' in seconds."""
@@ -57,10 +56,7 @@ class BitstampAdapter(ExchangeAdapter):
         return step_map[timeframe]
 
     async def _stream_messages(self) -> AsyncGenerator[dict[str, Any], None]:
-        """
-        Connects to the WebSocket, subscribes to 'live_trades' channels,
-        and yields incoming trade messages.
-        """
+        """Connects to the WebSocket, subscribes, and yields trade messages."""
         async with websockets.connect(self._BASE_WSS_URL) as websocket:
             for symbol in self.symbols:
                 venue_symbol = self._normalize_symbol_to_venue(symbol)
@@ -69,7 +65,9 @@ class BitstampAdapter(ExchangeAdapter):
                     "data": {"channel": f"live_trades_{venue_symbol}"},
                 }
                 await websocket.send(json.dumps(subscription_message))
-                logger.info(f"[{self.venue_name}] Subscribing to channel for: {venue_symbol}")
+                logger.info(
+                    f"[{self.venue_name}] Subscribing to channel for: {venue_symbol}"
+                )
 
             while True:
                 message_raw = await websocket.recv()
@@ -78,17 +76,24 @@ class BitstampAdapter(ExchangeAdapter):
                 if message.get("event") == "trade":
                     yield message
                 elif message.get("event") == "bts:subscription_succeeded":
-                    logger.debug(f"[{self.venue_name}] Subscription success: {message['channel']}")
+                    logger.debug(
+                        f"[{self.venue_name}] Subscription success: {message['channel']}"
+                    )
                 elif message.get("event") == "bts:request_reconnect":
-                    logger.info(f"[{self.venue_name}] Server requested reconnect. Closing connection.")
+                    logger.info(
+                        f"[{self.venue_name}] Server requested reconnect. "
+                        "Closing connection."
+                    )
                     break  # Exit to allow the run loop to handle reconnection
                 else:
-                    logger.debug(f"[{self.venue_name}] Received non-trade message: {message}")
+                    logger.debug(
+                        f"[{self.venue_name}] Received non-trade message: {message}"
+                    )
 
-    def _normalize_message(self, message: dict[str, Any]) -> models_pb2.PriceUpdate | None:
-        """
-        Normalizes a raw WebSocket message from Bitstamp into a canonical PriceUpdate.
-        """
+    def _normalize_message(
+        self, message: dict[str, Any]
+    ) -> models_pb2.PriceUpdate | None:
+        """Normalizes a raw WebSocket message from Bitstamp into a PriceUpdate."""
         if message.get("event") != "trade":
             return None
 
@@ -110,15 +115,16 @@ class BitstampAdapter(ExchangeAdapter):
                 ),
             )
         except (KeyError, ValueError, TypeError) as e:
-            logger.warning(f"[{self.venue_name}] Could not parse trade message: {message}. Error: {e}")
+            logger.warning(
+                f"[{self.venue_name}] Could not parse trade message: {message}. "
+                f"Error: {e}"
+            )
             return None
 
     async def get_historical_candles(
         self, symbol: str, timeframe: str, start_dt: datetime, end_dt: datetime
     ) -> list[models_pb2.Candle]:
-        """
-        Fetches historical OHLCV data from Bitstamp's REST API, handling pagination.
-        """
+        """Fetches historical OHLCV data from Bitstamp's REST API."""
         venue_symbol = self._normalize_symbol_to_venue(symbol)
         step = self._map_timeframe_to_step(timeframe)
         all_candles: list[models_pb2.Candle] = []
@@ -127,7 +133,10 @@ class BitstampAdapter(ExchangeAdapter):
         current_start_ts = int(start_dt.timestamp())
         end_ts = int(end_dt.timestamp())
 
-        logger.info(f"[{self.venue_name}] Fetching historical data for {symbol} from {start_dt} to {end_dt}")
+        logger.info(
+            f"[{self.venue_name}] Fetching historical data for {symbol} "
+            f"from {start_dt} to {end_dt}"
+        )
 
         while current_start_ts < end_ts:
             params = {
@@ -150,12 +159,13 @@ class BitstampAdapter(ExchangeAdapter):
                     # Candle format: {'high': '...', 'timestamp': '...', ...}
                     ts = int(c["timestamp"])
                     open_time = datetime.fromtimestamp(ts, tz=timezone.utc)
+                    close_time = open_time + timedelta(seconds=step)
                     all_candles.append(
                         models_pb2.Candle(
                             symbol=symbol,
                             timeframe=timeframe,
                             open_time=normalize_timestamp_to_rfc3339(open_time),
-                            close_time=normalize_timestamp_to_rfc3339(open_time + timedelta(seconds=step)),
+                            close_time=normalize_timestamp_to_rfc3339(close_time),
                             open=str(c["open"]),
                             high=str(c["high"]),
                             low=str(c["low"]),
@@ -163,18 +173,24 @@ class BitstampAdapter(ExchangeAdapter):
                             volume=str(c["volume"]),
                         )
                     )
-                
+
                 # Move to the next time window
                 last_ts_in_batch = int(ohlc_data[-1]["timestamp"])
                 current_start_ts = last_ts_in_batch + step
 
             except Exception as e:
-                logger.error(f"[{self.venue_name}] Failed to fetch historical data for {symbol}: {e}")
+                logger.error(
+                    f"[{self.venue_name}] Failed to fetch historical data for "
+                    f"{symbol}: {e}"
+                )
                 break
 
         # Sort and de-duplicate
         unique_candles = {c.open_time: c for c in all_candles}
         sorted_candles = sorted(unique_candles.values(), key=lambda c: c.open_time)
-        
-        logger.success(f"[{self.venue_name}] Fetched {len(sorted_candles)} unique candles for {symbol}.")
+
+        logger.success(
+            f"[{self.venue_name}] Fetched {len(sorted_candles)} unique "
+            f"candles for {symbol}."
+        )
         return sorted_candles

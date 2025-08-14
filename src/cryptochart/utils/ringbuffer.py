@@ -1,5 +1,6 @@
 from collections import deque
-from typing import Generic, Iterable, Sized, TypeVar
+from collections.abc import Iterable, Sized
+from typing import Generic, TypeVar
 
 T = TypeVar("T")
 
@@ -15,7 +16,7 @@ class RingBuffer(Sized, Generic[T]):
     It is generic, allowing it to store any type of object.
     """
 
-    def __init__(self, capacity: int):
+    def __init__(self, capacity: int) -> None:
         """
         Initializes the RingBuffer.
 
@@ -28,7 +29,7 @@ class RingBuffer(Sized, Generic[T]):
         if not isinstance(capacity, int) or capacity <= 0:
             raise ValueError("Capacity must be a positive integer.")
         self._capacity = capacity
-        self._data: "deque[T]" = deque(maxlen=capacity)
+        self._data: deque[T] = deque(maxlen=capacity)
 
     @property
     def capacity(self) -> int:
@@ -111,4 +112,7 @@ class RingBuffer(Sized, Generic[T]):
 
     def __repr__(self) -> str:
         """Returns a developer-friendly representation of the buffer."""
-        return f"RingBuffer(capacity={self.capacity}, size={len(self)}, data={list(self._data)})"
+        return (
+            f"RingBuffer(capacity={self.capacity}, size={len(self)}, "
+            f"data={list(self._data)})"
+        )
