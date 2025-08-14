@@ -36,6 +36,9 @@ def find_proto_files() -> list[Path]:
 
 def compile_proto_file(proto_file: Path) -> bool:
     """Compiles a single .proto file using protoc."""
+    # --- CORRECTED COMMAND ---
+    # The file path argument must be relative to the --proto_path.
+    # Since --proto_path is the 'proto' directory, the file path is just the filename.
     command = [
         sys.executable,
         "-m",
@@ -44,7 +47,7 @@ def compile_proto_file(proto_file: Path) -> bool:
         # The output directory is `src/` so that the package structure
         # `cryptochart/types/` is correctly created from the proto package.
         f"--python_out={ROOT_DIR / 'src'}",
-        str(proto_file.relative_to(ROOT_DIR)),
+        str(proto_file.name), # Corrected: Pass only the filename
     ]
 
     print(f"  Compiling {proto_file.name}...")
@@ -102,12 +105,14 @@ def main() -> None:
     # 5. Report final status.
     print("-" * 35)
     if success_count == len(proto_files):
-        print(f"✅ Successfully compiled all {success_count} protobuf definition(s).")
+        # Corrected: Removed emoji for Windows compatibility
+        print(f"SUCCESS: Successfully compiled all {success_count} protobuf definition(s).")
         print(f"   Output directory: '{PYTHON_OUTPUT_DIR}'")
         sys.exit(0)
     else:
+        # Corrected: Removed emoji for Windows compatibility
         print(
-            f"❌ Compilation failed. Only {success_count} of {len(proto_files)} "
+            f"FAILURE: Compilation failed. Only {success_count} of {len(proto_files)} "
             "files succeeded."
         )
         sys.exit(1)
