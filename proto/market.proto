@@ -1,0 +1,79 @@
+syntax = "proto3";
+
+package cryptochart.types;
+
+// PriceUpdate represents a single trade or a tick update from an exchange,
+// normalized into a common format. It also carries aggregated data like VWAP.
+// All price/size fields are strings to preserve arbitrary precision from the
+// source and avoid floating-point errors before conversion to fixed-point integers.
+message PriceUpdate {
+  // The trading pair symbol in 'BASE/QUOTE' format, e.g., "BTC/USD".
+  string symbol = 1;
+
+  // The exchange where the update originated, e.g., "coinbase".
+  string venue = 2;
+
+  // A sequence number, typically from the exchange, for ordering messages.
+  int64 sequence_number = 3;
+
+  // The price of the trade.
+  string price = 4;
+
+  // The size or volume of the trade.
+  string size = 5;
+
+  // The side of the trade, e.g., "buy" or "sell". May be empty if not applicable.
+  string side = 6;
+
+  // The best bid price at the time of the update. May be empty.
+  string best_bid = 7;
+
+  // The best ask price at the time of the update. May be empty.
+  string best_ask = 8;
+
+  // The calculated Volume-Weighted Average Price for a specific timeframe.
+  string vwap = 9;
+
+  // The calculated cumulative volume for a specific timeframe.
+  string cum_volume = 10;
+
+  // The timeframe this aggregation applies to, e.g., "1m", "5m".
+  string timeframe = 11;
+
+  // The timestamp from the exchange (source of truth), in RFC3339 UTC format.
+  string exchange_timestamp = 12;
+
+  // The timestamp when the client received the message, in RFC3339 UTC format.
+  string client_received_timestamp = 13;
+}
+
+// Candle represents a single OHLCV (Open, High, Low, Close, Volume) data point
+// for a specific symbol and timeframe, typically used for historical data.
+message Candle {
+  // The trading pair symbol, e.g., "BTC/USD".
+  string symbol = 1;
+
+  // The timeframe for this candle, e.g., "1h", "1d".
+  string timeframe = 2;
+
+  // The opening timestamp of the candle period, in RFC3339 UTC format.
+  string open_time = 3;
+
+  // The closing timestamp of the candle period, in RFC3339 UTC format.
+  string close_time = 4;
+
+  // The opening price for the period.
+  string open = 5;
+
+  // The highest price for the period.
+  string high = 6;
+
+  // The lowest price for the period.
+  string low = 7;
+
+  // The closing price for the period.
+  string close = 8;
+
+  // The total trading volume for the period.
+  string volume = 9;
+}

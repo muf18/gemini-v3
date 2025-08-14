@@ -1,0 +1,129 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cryptochart"
+version = "1.0.0"
+description = "A high-performance, real-time cryptocurrency charting client with multi-exchange aggregation."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [
+  { name = "CryptoChart Contributors", email = "contact@example.com" },
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Intended Audience :: End Users/Desktop",
+    "Topic :: Office/Business :: Financial :: Investment",
+]
+
+dependencies = [
+    # Core Networking & Async
+    "websockets>=12.0",
+    "httpx[http2,brotli]>=0.27.0",
+    "aiodns>=3.0.0", # Recommended for httpx
+    "async-timeout>=4.0.3",
+
+    # Data Processing & Serialization
+    "protobuf>=4.25.0,<5.0",
+    "numpy>=1.26.0",
+
+    # GUI & Charting
+    "PySide6>=6.6.0",
+    "pyqtgraph>=0.13.3",
+    "qasync>=0.27.0", # Corrected package name to 'qasync'
+
+    # Utilities
+    "aiofiles>=23.2.0",
+    "keyring>=24.3.0",
+    "loguru>=0.7.2",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/example/cryptochart"
+"Bug Tracker" = "https://github.com/example/cryptochart/issues"
+
+[project.scripts]
+cryptochart = "cryptochart.ui.main:main"
+
+[project.optional-dependencies]
+dev = [
+    # Linting & Formatting
+    "ruff>=0.4.0",
+    "mypy>=1.8.0",
+
+    # Testing
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-benchmark>=4.0.0",
+    "pytest-qt>=4.2.0",
+
+    # Protobuf compilation
+    "grpcio-tools>=1.60.0",
+    "types-protobuf>=4.24.0",
+
+    # Packaging
+    "pyinstaller>=6.0.0",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+packages = ["cryptochart"]
+
+[tool.ruff]
+# Target the oldest supported Python version.
+target-version = "py310"
+
+# Define the source directory.
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+# Select all rules by default and explicitly ignore a few.
+select = ["ALL"]
+ignore = [
+    "D100", # Missing docstring in public module
+    "D104", # Missing docstring in public package
+    "D107", # Missing docstring in `__init__`
+    "ANN101", # Missing type annotation for `self`
+    "ANN102", # Missing type annotation for `cls`
+    "FIX002", # Line contains TODO
+]
+
+[tool.ruff.format]
+# Use black-compatible formatting.
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_any_unimported = true
+no_implicit_optional = true
+check_untyped_defs = true
+strict = true
+# Add stubs for libraries that don't have inline types
+plugins = ["pydantic.mypy"]
+
+# Define source paths
+files = ["src/cryptochart", "tests"]
+exclude = ["src/cryptochart/types/.*_pb2\\.py"] # Exclude generated protobuf files
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["tests/unit", "tests/integration"]
+asyncio_mode = "auto"
+# Filter out noisy warnings from dependencies
+filterwarnings = [
+    "ignore::DeprecationWarning:pkg_resources.*",
+    "ignore::DeprecationWarning:pyqtgraph.*",
+]
