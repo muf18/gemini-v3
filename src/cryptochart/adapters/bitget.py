@@ -3,18 +3,13 @@ import json
 from collections.abc import AsyncGenerator
 from datetime import datetime, timedelta, timezone
 from typing import Any
-
 import websockets
 from loguru import logger
-
 from cryptochart.adapters.base import ExchangeAdapter
 from cryptochart.types import models_pb2
 from cryptochart.utils.time import normalize_timestamp_to_rfc3339
-
-
 class BitgetAdapter(ExchangeAdapter):
     """Adapter for connecting to the Bitget WebSocket and REST APIs."""
-
     _BASE_WSS_URL: str = "wss://ws.bitget.com/v2/spot/public"
     _BASE_API_URL: str = "https://api.bitget.com/api/v2/spot"
 
@@ -185,7 +180,7 @@ class BitgetAdapter(ExchangeAdapter):
                     break  # No more data
 
                 for c in candles_data:
-                    # Candle format: [ts_ms, open, high, low, close, base_vol, quote_vol]
+                    # Candle: [ts_ms, o, h, l, c, base_vol, quote_vol]
                     ts_ms = int(c[0])
                     open_time = datetime.fromtimestamp(ts_ms / 1000, tz=timezone.utc)
                     close_time = open_time + timedelta(

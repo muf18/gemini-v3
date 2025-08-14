@@ -2,7 +2,7 @@ import asyncio
 import contextlib
 import types
 from collections.abc import AsyncGenerator
-from typing import Any, Self
+from typing import Self
 
 from loguru import logger
 

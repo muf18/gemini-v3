@@ -3,7 +3,6 @@ from collections.abc import AsyncGenerator
 from typing import Any
 
 import pytest
-from pytest_mock import MockerFixture
 
 from cryptochart.adapters.base import ExchangeAdapter
 from cryptochart.aggregator import Aggregator
@@ -13,11 +12,13 @@ from cryptochart.types import models_pb2
 
 class ControllableMockAdapter(ExchangeAdapter):
     """
-    A mock adapter that allows programmatic control over its message stream
-    and connection state for testing resilience.
+    A mock adapter that allows programmatic control over its message stream.
+
+    It also controls the connection state for testing resilience.
     """
 
-    def __init__(self, venue: str, *args: Any, **kwargs: Any):
+    def __init__(self, venue: str, *args: Any, **kwargs: Any) -> None:
+        """Initializes the controllable mock adapter."""
         super().__init__(*args, **kwargs)
         self._venue = venue
         self._stream_queue = asyncio.Queue()
@@ -25,6 +26,7 @@ class ControllableMockAdapter(ExchangeAdapter):
 
     @property
     def venue_name(self) -> str:
+        """Returns the mock venue name."""
         return self._venue
 
     async def _stream_messages(self) -> AsyncGenerator[dict[str, Any], None]:
@@ -36,9 +38,12 @@ class ControllableMockAdapter(ExchangeAdapter):
             except asyncio.CancelledError:
                 break
         # Simulate a connection loss by exiting the generator
-        raise ConnectionAbortedError(f"Connection lost for {self.venue_name}")
+        err_msg = f"Connection lost for {self.venue_name}"
+        raise ConnectionAbortedError(err_msg)
 
-    def _normalize_message(self, message: dict[str, Any]) -> models_pb2.PriceUpdate | None:
+    def _normalize_message(
+        self, message: dict[str, Any]
+    ) -> models_pb2.PriceUpdate | None:
         return models_pb2.PriceUpdate(
             symbol="BTC/USD",
             venue=self.venue_name,
@@ -46,7 +51,10 @@ class ControllableMockAdapter(ExchangeAdapter):
             size=str(message["size"]),
         )
 
-    async def get_historical_candles(self, *args: Any, **kwargs: Any) -> list[models_pb2.Candle]:
+    async def get_historical_candles(
+        self, *args: Any, **kwargs: Any
+    ) -> list[models_pb2.Candle]:
+        """Returns an empty list for historical data."""
         return []
 
     # --- Control methods for the test ---
@@ -64,8 +72,9 @@ class ControllableMockAdapter(ExchangeAdapter):
 @pytest.mark.asyncio
 async def test_aggregator_resilience_to_adapter_disconnection() -> None:
     """
-    Tests that the aggregator continues to process data from remaining
-    adapters when one of them disconnects.
+    Tests that the aggregator continues to process data from remaining adapters.
+
+    This is tested for a scenario where one of them disconnects.
     """
     # --- Setup ---
     # Create the data pipeline components
@@ -77,8 +86,12 @@ async def test_aggregator_resilience_to_adapter_disconnection() -> None:
     aggregator = Aggregator(aggregator_q, output_q)
 
     # Create two controllable mock adapters
-    adapter1 = ControllableMockAdapter(venue="venue1", symbols=["BTC/USD"], output_queue=adapter_q, http_client=None) # type: ignore
-    adapter2 = ControllableMockAdapter(venue="venue2", symbols=["BTC/USD"], output_queue=adapter_q, http_client=None) # type: ignore
+    adapter1 = ControllableMockAdapter(
+        venue="venue1", symbols=["BTC/USD"], output_queue=adapter_q, http_client=None
+    )  # type: ignore
+    adapter2 = ControllableMockAdapter(
+        venue="venue2", symbols=["BTC/USD"], output_queue=adapter_q, http_client=None
+    )  # type: ignore
 
     # Start all components
     normalizer.start()
@@ -96,7 +109,7 @@ async def test_aggregator_resilience_to_adapter_disconnection() -> None:
     await adapter2.send_trade(price=102, size=1)
     update2 = await asyncio.wait_for(output_q.get(), timeout=1)
     assert update2.venue == "venue2"
-    assert update2.vwap == "101.0" # VWAP of (100*1 + 102*1) / (1+1)
+    assert update2.vwap == "101.0"  # VWAP of (100*1 + 102*1) / (1+1)
 
     # 2. Simulate a disconnection of the first adapter.
     adapter1.disconnect()
@@ -108,7 +121,8 @@ async def test_aggregator_resilience_to_adapter_disconnection() -> None:
     await adapter2.send_trade(price=104, size=2)
     update3 = await asyncio.wait_for(output_q.get(), timeout=1)
     assert update3.venue == "venue2"
-    # The window now contains the trade from adapter2 (102, 1) and this new trade (104, 2)
+    # The window now contains the trade from adapter2 (102, 1) and this new
+    # trade (104, 2).
     # The trade from the disconnected adapter1 (100, 1) is still in the window.
     # VWAP = (100*1 + 102*1 + 104*2) / (1+1+2) = 410 / 4 = 102.5
     assert update3.vwap == "102.5"

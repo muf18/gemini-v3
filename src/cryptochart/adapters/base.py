@@ -118,9 +118,7 @@ class ExchangeAdapter(abc.ABC):
                 )
 
             if self._running.is_set():
-                jitter = delay * JITTER_FACTOR * (
-                    random.random() * 2 - 1
-                )  # noqa: S311 - Not used for crypto
+                jitter = delay * JITTER_FACTOR * (random.random() * 2 - 1)  # noqa: S311
                 sleep_duration = min(MAX_RECONNECT_DELAY_S, abs(delay + jitter))
                 logger.info(
                     f"[{self.venue_name}] Reconnecting in {sleep_duration:.2f} seconds."
