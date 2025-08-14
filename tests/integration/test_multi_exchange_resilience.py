@@ -52,7 +52,7 @@ class ControllableMockAdapter(ExchangeAdapter):
         )
 
     async def get_historical_candles(
-        self, *args: Any, **kwargs: Any
+        self, _args: Any, _kwargs: Any
     ) -> list[models_pb2.Candle]:
         """Returns an empty list for historical data."""
         return []
@@ -88,10 +88,10 @@ async def test_aggregator_resilience_to_adapter_disconnection() -> None:
     # Create two controllable mock adapters
     adapter1 = ControllableMockAdapter(
         venue="venue1", symbols=["BTC/USD"], output_queue=adapter_q, http_client=None
-    )  # type: ignore
+    )  # type: ignore[arg-type]
     adapter2 = ControllableMockAdapter(
         venue="venue2", symbols=["BTC/USD"], output_queue=adapter_q, http_client=None
-    )  # type: ignore
+    )  # type: ignore[arg-type]
 
     # Start all components
     normalizer.start()

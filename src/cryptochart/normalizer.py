@@ -7,8 +7,7 @@ from cryptochart.utils.time import get_current_rfc3339_timestamp
 
 
 class Normalizer:
-    """
-    A central processing component between exchange adapters and the aggregator.
+    """A central processing component between exchange adapters and the aggregator.
 
     The Normalizer's primary responsibilities are:
     1.  Receiving normalized `PriceUpdate` messages from various adapters.
