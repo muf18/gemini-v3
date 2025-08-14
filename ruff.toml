@@ -9,44 +9,11 @@ src = ["src", "tests", "scripts"]
 
 [lint]
 # Enforce a strict set of rules by selecting all rule categories.
-# For a full list of rules, see: https://docs.astral.sh/ruff/rules/
 select = [
-    "A",   # flake8-builtins
-    "ANN", # flake8-annotations
-    "ARG", # flake8-unused-arguments
-    "B",   # flake8-bugbear
-    "C4",  # flake8-comprehensions
-    "C90", # mccabe
-    "COM", # flake8-commas
-    "D",   # pydocstyle
-    "DTZ", # flake8-datetimez
-    "E",   # pycodestyle (error)
-    "W",   # pycodestyle (warning)
-    "EM",  # flake8-errmsg
-    "ERA", # eradicate
-    "F",   # pyflakes
-    "G",   # flake8-logging-format
-    "I",   # isort
-    "ICN", # flake8-import-conventions
-    "INP", # flake8-no-pep420
-    "ISC", # flake8-implicit-str-concat
-    "N",   # pep8-naming
-    "PERF",# perflint
-    "PGH", # pygrep-hooks
-    "PIE", # flake8-pie
-    "PL",  # pylint
-    "PT",  # flake8-pytest-style
-    "PYI", # flakes8-pyi
-    "Q",   # flake8-quotes
-    "RET", # flake8-return
-    "RSE", # flake8-raise
-    "RUF", # Ruff-specific rules
-    "S",   # flake8-bandit
-    "SIM", # flake8-simplify
-    "T20", # flake8-print
-    "TID", # flake8-tidy-imports
-    "UP",  # pyupgrade
-    "YTT", # flake8-2020
+    "A", "ANN", "ARG", "B", "C4", "C90", "COM", "D", "DTZ", "E", "W", "EM",
+    "ERA", "F", "G", "I", "ICN", "INP", "ISC", "N", "PERF", "PGH", "PIE",
+    "PL", "PT", "PYI", "Q", "RET", "RSE", "RUF", "S", "SIM", "T20", "TID",
+    "UP", "YTT",
 ]
 
 # Ignore specific rules that are either too noisy or conflict with other tools/styles.
@@ -78,3 +45,14 @@ quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "auto"
+
+# --- Per-file ignores ---
+[lint.per-file-ignores]
+# In tests, it's standard to use `assert`, so we ignore the S101 rule.
+"tests/**/*.py" = ["S101"]
+# Helper scripts can use `print` for direct user feedback.
+"scripts/**/*.py" = ["T201"]
+# The compile script is a command-line tool, so print is acceptable.
+"proto/compile_proto.py" = ["T201", "S603"]
+# The generated protobuf file will have many style issues; we ignore it completely.
+"src/cryptochart/types/models_pb2.py" = ["ALL"]

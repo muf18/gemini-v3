@@ -23,7 +23,6 @@ except NameError:
 
 PROTO_SOURCE_DIR = ROOT_DIR / "proto"
 PYTHON_OUTPUT_DIR = ROOT_DIR / "src" / "cryptochart" / "types"
-PROTOC_VENV_PATH = Path(sys.executable).parent
 
 
 def find_proto_files() -> list[Path]:
@@ -36,18 +35,13 @@ def find_proto_files() -> list[Path]:
 
 def compile_proto_file(proto_file: Path) -> bool:
     """Compiles a single .proto file using protoc."""
-    # --- CORRECTED COMMAND ---
-    # The file path argument must be relative to the --proto_path.
-    # Since --proto_path is the 'proto' directory, the file path is just the filename.
     command = [
         sys.executable,
         "-m",
         "grpc_tools.protoc",
         f"--proto_path={PROTO_SOURCE_DIR}",
-        # The output directory is `src/` so that the package structure
-        # `cryptochart/types/` is correctly created from the proto package.
         f"--python_out={ROOT_DIR / 'src'}",
-        str(proto_file.name), # Corrected: Pass only the filename
+        str(proto_file.name),  # Pass only the filename relative to proto_path
     ]
 
     print(f"  Compiling {proto_file.name}...")
@@ -67,7 +61,7 @@ def compile_proto_file(proto_file: Path) -> bool:
     except FileNotFoundError:
         print("Error: 'protoc' command not found.")
         print("Please ensure 'grpcio-tools' is installed in your environment:")
-        print(f"  pip install grpcio-tools")
+        print("  pip install grpcio-tools")
         return False
     except subprocess.CalledProcessError as e:
         print(f"Error compiling {proto_file.name}:")
@@ -79,10 +73,8 @@ def main() -> None:
     """Main function to orchestrate the compilation process."""
     print("--- Starting Protobuf Compilation ---")
 
-    # 1. Ensure the output directory exists.
     PYTHON_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    # 2. Find all .proto files.
     proto_files = find_proto_files()
     if not proto_files:
         print("No .proto files found to compile. Exiting.")
@@ -90,30 +82,20 @@ def main() -> None:
 
     print(f"Found {len(proto_files)} .proto file(s) in '{PROTO_SOURCE_DIR}'.")
 
-    # 3. Compile each file.
-    success_count = 0
-    for proto_file in proto_files:
-        if compile_proto_file(proto_file):
-            success_count += 1
+    success_count = sum(1 for pf in proto_files if compile_proto_file(pf))
 
-    # 4. Create an __init__.py file to make the output dir a package.
     init_py_path = PYTHON_OUTPUT_DIR / "__init__.py"
     if not init_py_path.exists():
         print(f"Creating package marker: '{init_py_path}'")
         init_py_path.touch()
 
-    # 5. Report final status.
     print("-" * 35)
     if success_count == len(proto_files):
-        # Corrected: Removed emoji for Windows compatibility
-        print(f"SUCCESS: Successfully compiled all {success_count} protobuf definition(s).")
-        print(f"   Output directory: '{PYTHON_OUTPUT_DIR}'")
+        print(f"SUCCESS: Compiled all {success_count} protobuf definition(s).")
         sys.exit(0)
     else:
-        # Corrected: Removed emoji for Windows compatibility
         print(
-            f"FAILURE: Compilation failed. Only {success_count} of {len(proto_files)} "
-            "files succeeded."
+            f"FAILURE: Only {success_count} of {len(proto_files)} files succeeded."
         )
         sys.exit(1)
 

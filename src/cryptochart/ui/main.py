@@ -1,14 +1,21 @@
 import asyncio
 import sys
-from collections.abc import Coroutine, Sequence
+from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any
 
 import httpx
 from loguru import logger
 from PySide6.QtCore import QTimer, Slot
-from PySide6.QtGui import QAction
-from PySide6.QtWidgets import QApplication, QMainWindow, QMessageBox, QStatusBar
+from PySide6.QtGui import QAction, QCloseEvent
+from PySide6.QtWidgets import (
+    QApplication,
+    QInputDialog,
+    QMainWindow,
+    QMessageBox,
+    QStatusBar,
+)
 
 from cryptochart.adapters import (
     binance,
@@ -30,7 +37,6 @@ from cryptochart.publisher import Publisher
 from cryptochart.types import models_pb2
 from cryptochart.ui.qt_asyncio_integration import run_with_asyncio
 from cryptochart.ui.views.chart_view import ChartView
-from cryptochart.ui.views.pair_selector import PairSelectorDialog
 from cryptochart.ui.views.settings_panel import SettingsPanel
 
 # --- Constants ---
@@ -63,7 +69,7 @@ class MainWindow(QMainWindow):
         self._publisher = Publisher(self._publisher_q)
         self._persistence = Persistence(
             input_queue=self._persistence_q,
-            output_directory=settings.persistence.output_directory,
+            output_directory=Path(settings.persistence.output_directory),
         )
         self._normalizer = Normalizer(self._adapter_q, self._aggregator_q)
         self._aggregator = Aggregator(self._aggregator_q, self._publisher_q)
@@ -87,9 +93,6 @@ class MainWindow(QMainWindow):
         ]
         instances = []
         for adapter_cls in adapter_classes:
-            # This is a placeholder for symbol mapping logic
-            # In a real app, you'd pass the correct symbols for each exchange
-            # For now, we pass an empty list and set it later.
             instance = adapter_cls([], self._adapter_q, self._http_client)
             if getattr(settings.api, f"{instance.venue_name}_enabled", False):
                 instances.append(instance)
@@ -101,15 +104,12 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("CryptoChart")
         self.resize(1280, 720)
 
-        # Central Widget
         self._chart_view = ChartView(self)
         self.setCentralWidget(self._chart_view)
 
-        # Status Bar
         self.setStatusBar(QStatusBar(self))
         self.statusBar().showMessage("Ready. Please select a trading pair to begin.")
 
-        # Menu Bar
         menu_bar = self.menuBar()
         file_menu = menu_bar.addMenu("&File")
 
@@ -131,7 +131,6 @@ class MainWindow(QMainWindow):
         """Starts all the core background services."""
         logger.info("Starting core application services...")
         self._publisher.start()
-        # Also subscribe the persistence engine to the publisher
         await self._publisher.subscribe("*", "*", self._persistence_q)
         self._persistence.start()
         if settings.persistence.enabled_by_default:
@@ -143,24 +142,20 @@ class MainWindow(QMainWindow):
     @Slot()
     def _show_pair_selector(self) -> None:
         """Slot to show the pair selection dialog."""
-        asyncio.create_task(self._run_pair_selection_flow())
+        self._pair_selection_task = asyncio.create_task(
+            self._run_pair_selection_flow()
+        )
 
     async def _run_pair_selection_flow(self) -> None:
         """Orchestrates the process of selecting and loading a new pair."""
         self.statusBar().showMessage("Fetching available pairs...")
-        # This is a placeholder for getting all pairs from adapters
-        # A real implementation would fetch this live.
         all_pairs = {
             "BTC/USD", "BTC/EUR", "BTC/USDT", "ETH/USD", "ETH/EUR", "ETH/USDT"
         }
         
-        # For now, we'll use a static list for the dialog
-        # In a real app, you'd use the PairSelectorDialog like this:
-        # selected_pair = await PairSelectorDialog.get_pair(self._all_adapters, self)
-        
-        # Simplified selection for now
-        from PySide6.QtWidgets import QInputDialog
-        selected_pair, ok = QInputDialog.getItem(self, "Select Pair", "Pair:", list(sorted(all_pairs)), 0, False)
+        selected_pair, ok = QInputDialog.getItem(
+            self, "Select Pair", "Pair:", sorted(all_pairs), 0, False
+        )
 
         if ok and selected_pair:
             self.statusBar().showMessage(f"Loading pair: {selected_pair}...")
@@ -171,7 +166,6 @@ class MainWindow(QMainWindow):
 
     async def _reconfigure_for_new_pair(self, pair: str) -> None:
         """Stops old services, starts new ones, and loads data for the new pair."""
-        # 1. Stop existing UI updates and adapters
         if self._ui_update_task:
             self._ui_update_task.cancel()
         if self._active_subscription_id:
@@ -180,25 +174,22 @@ class MainWindow(QMainWindow):
             await adapter.stop()
         self._active_adapters.clear()
 
-        # 2. Find and configure adapters for the new pair
-        # This is a placeholder for a proper symbol mapping system
         relevant_adapters = [
             adapter for adapter in self._all_adapters
             if pair.split('/')[1] in adapter.venue_name.upper() or 'USD' in pair
         ]
         if not relevant_adapters:
-            relevant_adapters = [a for a in self._all_adapters if a.venue_name in ('coinbase', 'kraken', 'binance')]
-
+            relevant_adapters = [
+                a for a in self._all_adapters if a.venue_name in ("coinbase", "kraken", "binance")
+            ]
 
         for adapter in relevant_adapters:
             adapter.symbols = [pair]
         self._active_adapters = relevant_adapters
 
-        # 3. Update chart and fetch historical data
         self._chart_view.set_symbol(pair, DEFAULT_TIMEFRAME_SECONDS)
         await self._fetch_and_load_historical(pair, self._active_adapters)
 
-        # 4. Start new adapters and subscribe UI
         for adapter in self._active_adapters:
             adapter.start()
         await self._subscribe_to_realtime_data(pair, DEFAULT_TIMEFRAME)
@@ -211,8 +202,10 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "No Adapters", f"No adapters found for {symbol}.")
             return
 
-        adapter = adapters[0]  # Use the first adapter for historical data
-        self.statusBar().showMessage(f"Fetching historical data for {symbol} from {adapter.venue_name}...")
+        adapter = adapters[0]
+        self.statusBar().showMessage(
+            f"Fetching historical data for {symbol} from {adapter.venue_name}..."
+        )
         try:
             end_dt = datetime.now(timezone.utc)
             start_dt = end_dt - timedelta(days=HISTORICAL_DATA_RANGE_DAYS)
@@ -232,7 +225,9 @@ class MainWindow(QMainWindow):
         )
         self._ui_update_task = asyncio.create_task(self._ui_update_loop(ui_queue))
 
-    async def _ui_update_loop(self, queue: "asyncio.Queue[models_pb2.PriceUpdate]") -> None:
+    async def _ui_update_loop(
+        self, queue: "asyncio.Queue[models_pb2.PriceUpdate]"
+    ) -> None:
         """The loop that feeds real-time data from a queue to the chart."""
         try:
             while True:
@@ -264,7 +259,7 @@ class MainWindow(QMainWindow):
         await self._http_client.aclose()
         logger.success("Shutdown complete.")
 
-    def closeEvent(self, event: Any) -> None:
+    def closeEvent(self, event: QCloseEvent) -> None:
         """Overrides QMainWindow.closeEvent to trigger async shutdown."""
         logger.info("Close event triggered.")
         event.accept()
@@ -275,30 +270,10 @@ class MainWindow(QMainWindow):
 
 async def main_async() -> int:
     """The main async entry point for the application."""
-    setup_logging(
-        console_level=settings.general.log_level_console,
-        log_dir=Path(settings.general.log_directory) if settings.general.log_directory else None,
+    log_dir = (
+        Path(settings.general.log_directory)
+        if settings.general.log_directory
+        else None
     )
-    
-    main_window = MainWindow()
-    await main_window.start_services()
-    main_window.show()
-    
-    # Use a QTimer to trigger the initial pair selection after the event loop has started
-    QTimer.singleShot(100, main_window._show_pair_selector)
-    
-    return 0
-
-
-def main() -> None:
-    """The synchronous main function."""
-    try:
-        exit_code = run_with_asyncio(main_async())
-        sys.exit(exit_code)
-    except Exception:
-        logger.exception("An unhandled exception reached the top level.")
-        sys.exit(1)
-
-
-if __name__ == "__main__":
-    main()
+    setup_logging(
+        cons
