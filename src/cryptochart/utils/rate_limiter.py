@@ -1,12 +1,13 @@
 import asyncio
+import contextlib
 from collections.abc import AsyncGenerator
-from contextlib import asynccontextmanager
-from typing import Self
+from typing import Any, Self
+
+from loguru import logger
 
 
 class AsyncRateLimiter:
-    """
-    An asynchronous rate limiter using the token bucket algorithm.
+    """An asynchronous rate limiter using the token bucket algorithm.
 
     This class provides a mechanism to limit the rate of operations, which is
     essential for respecting API rate limits. It uses an `asyncio.Queue` as
@@ -24,18 +25,19 @@ class AsyncRateLimiter:
                     await make_api_call()
     """
 
-    def __init__(self, rate_limit: int, period_sec: float = 1.0):
-        """
-        Initializes the rate limiter.
+    def __init__(self, rate_limit: int, period_sec: float = 1.0) -> None:
+        """Initializes the rate limiter.
 
         Args:
             rate_limit: The maximum number of requests allowed in a period.
             period_sec: The time period in seconds.
         """
         if not isinstance(rate_limit, int) or rate_limit <= 0:
-            raise ValueError("Rate limit must be a positive integer.")
-        if not isinstance(period_sec, (int, float)) or period_sec <= 0:
-            raise ValueError("Period must be a positive number.")
+            err_msg = "Rate limit must be a positive integer."
+            raise ValueError(err_msg)
+        if not isinstance(period_sec, int | float) or period_sec <= 0:
+            err_msg = "Period must be a positive number."
+            raise ValueError(err_msg)
 
         self.rate_limit = rate_limit
         self.period_sec = period_sec
@@ -62,9 +64,7 @@ class AsyncRateLimiter:
             # Allow the task to exit cleanly on cancellation.
             pass
         except Exception as e:
-            # In a real application, you might want to log this.
-            # For now, we'll just print it to stderr.
-            print(f"FATAL: Rate limiter refill task failed: {e}")
+            logger.error(f"FATAL: Rate limiter refill task failed: {e}")
 
     async def start(self) -> None:
         """Starts the background token refiller task."""
@@ -75,16 +75,13 @@ class AsyncRateLimiter:
         """Stops the background token refiller task gracefully."""
         if self._refill_task and not self._refill_task.done():
             self._refill_task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self._refill_task
-            except asyncio.CancelledError:
-                pass
         self._refill_task = None
 
     @asynccontextmanager
     async def acquire(self) -> AsyncGenerator[None, None]:
-        """
-        Acquires a token, waiting if necessary. Use as an async context manager.
+        """Acquires a token, waiting if necessary. Use as an async context manager.
 
         This is the primary method for using the rate limiter. It will block
         until a token is available.
@@ -104,6 +101,8 @@ class AsyncRateLimiter:
         await self.start()
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+    async def __aexit__(
+        self, exc_type: Any, exc_val: Any, exc_tb: Any
+    ) -> None:
         """Stops the refiller task when exiting the context."""
         await self.stop()

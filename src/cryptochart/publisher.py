@@ -9,8 +9,7 @@ from cryptochart.types import models_pb2
 
 
 class Publisher:
-    """
-    A fan-out service that distributes aggregated data to subscribers.
+    """A fan-out service that distributes aggregated data to subscribers.
 
     This class receives aggregated `PriceUpdate` messages from the Aggregator
     and forwards them to any part of the application that has subscribed to
@@ -19,8 +18,7 @@ class Publisher:
     """
 
     def __init__(self, input_queue: "asyncio.Queue[models_pb2.PriceUpdate]") -> None:
-        """
-        Initializes the Publisher.
+        """Initializes the Publisher.
 
         Args:
             input_queue: The queue from which to receive aggregated updates.
@@ -68,8 +66,7 @@ class Publisher:
     async def subscribe(
         self, symbol: str, timeframe: str, queue: "asyncio.Queue[Any]"
     ) -> int:
-        """
-        Subscribes a queue to receive updates for a symbol and timeframe.
+        """Subscribes a queue to receive updates for a symbol and timeframe.
 
         Args:
             symbol: The trading symbol (e.g., "BTC/USD").
@@ -88,8 +85,7 @@ class Publisher:
             return sub_id
 
     async def unsubscribe(self, sub_id: int) -> None:
-        """
-        Unsubscribes a queue using its subscription ID.
+        """Unsubscribes a queue using its subscription ID.
 
         Args:
             sub_id: The unique ID returned by the `subscribe` method.
@@ -109,7 +105,8 @@ class Publisher:
                     logger.debug(f"Removed empty subscription key: {key}.")
             else:
                 logger.warning(
-                    f"Subscription key {key} or ID {sub_id} not found during unsubscribe."
+                    f"Subscription key {key} or ID {sub_id} not found during "
+                    "unsubscribe."
                 )
 
     async def _run(self) -> None:

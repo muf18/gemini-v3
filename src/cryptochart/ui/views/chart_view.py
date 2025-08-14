@@ -18,7 +18,9 @@ pg.setConfigOption("foreground", "#D8D9DD")
 class DateAxis(pg.AxisItem):
     """A custom axis item to display dates and times."""
 
-    def tickStrings(self, values: list[float], scale: float, spacing: float) -> list[str]:
+    def tickStrings(  # noqa: N802
+        self, values: list[float], _scale: float, _spacing: float
+    ) -> list[str]:
         """Formats the tick values from Unix timestamps to readable strings."""
         # Determine format based on the time range visible
         if not values:
@@ -39,8 +41,7 @@ class DateAxis(pg.AxisItem):
 
 
 class ChartView(QWidget):
-    """
-    A high-performance charting widget for financial data.
+    """A high-performance charting widget for financial data.
 
     Uses PyQtGraph for displaying candlesticks, volume, and VWAP overlays.
     """

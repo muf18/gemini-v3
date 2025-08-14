@@ -9,15 +9,13 @@ from loguru._defaults import LOGURU_FORMAT
 
 
 class InterceptHandler(logging.Handler):
-    """
-    A custom logging handler to intercept standard logging messages.
+    """A custom logging handler to intercept standard logging messages.
 
     This handler redirects standard logging messages to Loguru.
     """
 
     def emit(self, record: logging.LogRecord) -> None:
-        """
-        Emits a log record to the Loguru logger.
+        """Emits a log record to the Loguru logger.
 
         Args:
             record: The log record to emit.
@@ -38,8 +36,7 @@ class InterceptHandler(logging.Handler):
 
 
 def _sensitive_data_filter(record: dict[str, Any]) -> bool:
-    """
-    Filter and sanitizer for log records.
+    """Filter and sanitizer for log records.
 
     This function inspects the log record's 'extra' data and parameters
     to redact sensitive information before it is written to any sink.
@@ -93,8 +90,7 @@ def setup_logging(
     file_level: str = "DEBUG",
     log_dir: Path | None = None,
 ) -> None:
-    """
-    Configures the application-wide Loguru logger.
+    """Configures the application-wide Loguru logger.
 
     This function removes any default handlers, sets up a new console sink
     with a readable format, and an optional rotating file sink with

@@ -9,4 +9,5 @@ Usage:
         <START_DATE> [END_DATE]
 
 Example:
-    python scripts/download_historical.py coinbase BTC/USD 1h 2023-0
+    python scripts/download_historical.py coinbase BTC/USD 1h 2023-01-01
+"""

@@ -36,8 +36,7 @@ FLUSH_INTERVAL_SECONDS: float = 10.0
 
 
 class Persistence:
-    """
-    Handles optional, non-blocking writing of aggregated data to CSV files.
+    """Handles optional, non-blocking writing of aggregated data to CSV files.
 
     This component runs as a dedicated background task, consuming data from a
     queue. It batches writes to minimize I/O overhead and uses `aiofiles` to
@@ -50,8 +49,7 @@ class Persistence:
         input_queue: "asyncio.Queue[models_pb2.PriceUpdate]",
         output_directory: Path,
     ) -> None:
-        """
-        Initializes the Persistence engine.
+        """Initializes the Persistence engine.
 
         Args:
             input_queue: The queue to receive aggregated PriceUpdate messages from.
@@ -72,8 +70,7 @@ class Persistence:
         return self._enabled
 
     async def set_enabled(self, enabled: bool) -> None:
-        """
-        Enables or disables CSV persistence at runtime.
+        """Enables or disables CSV persistence at runtime.
 
         When disabling, it performs a final flush of any buffered data.
 
@@ -188,7 +185,9 @@ class Persistence:
         sanitized_symbol = record.symbol.replace("/", "-").upper()
         # Use the exchange timestamp to determine the date for the filename.
         try:
-            dt = datetime.fromisoformat(record.exchange_timestamp.replace("Z", "+00:00"))
+            dt = datetime.fromisoformat(
+                record.exchange_timestamp.replace("Z", "+00:00")
+            )
             date_str = dt.strftime("%Y-%m-%d")
         except (ValueError, TypeError):
             date_str = datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")

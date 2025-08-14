@@ -21,8 +21,7 @@ if TYPE_CHECKING:
 
 
 class SettingsPanel(QDialog):
-    """
-    A dialog window for configuring the application's settings at runtime.
+    """A dialog window for configuring the application's settings at runtime.
 
     This panel provides controls for features like enabling/disabling CSV
     persistence and viewing the status of API configurations.
@@ -34,8 +33,7 @@ class SettingsPanel(QDialog):
         app_settings: "Settings",
         parent: QWidget | None = None,
     ) -> None:
-        """
-        Initializes the SettingsPanel.
+        """Initializes the SettingsPanel.
 
         Args:
             persistence_manager: The application's persistence engine instance.
@@ -132,8 +130,7 @@ class SettingsPanel(QDialog):
 
     @Slot(int)
     def _on_csv_toggle_changed(self, state: int) -> None:
-        """
-        Slot that handles changes to the CSV toggle checkbox.
+        """Slot that handles changes to the CSV toggle checkbox.
 
         This method runs the asynchronous `set_enabled` method of the
         persistence manager in a background task.

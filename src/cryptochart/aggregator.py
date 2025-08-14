@@ -41,8 +41,7 @@ class TimeframeState:
 
 
 class SymbolAggregator:
-    """
-    Manages real-time aggregation for a single trading symbol (e.g., BTC/USD).
+    """Manages real-time aggregation for a single trading symbol (e.g., BTC/USD).
 
     This class maintains separate rolling windows for each supported timeframe,
     calculating VWAP and cumulative volume efficiently as new trades arrive.
@@ -58,8 +57,7 @@ class SymbolAggregator:
     def process_update(
         self, update: models_pb2.PriceUpdate
     ) -> list[models_pb2.PriceUpdate]:
-        """
-        Processes a new trade update and returns a list of aggregated updates.
+        """Processes a new trade update and returns a list of aggregated updates.
 
         Args:
             update: The normalized PriceUpdate from the Normalizer.
@@ -119,8 +117,7 @@ class SymbolAggregator:
 
 
 class Aggregator:
-    """
-    The main aggregation engine.
+    """The main aggregation engine.
 
     It receives normalized updates, dispatches them to the appropriate
     SymbolAggregator, and forwards the results to a publisher.

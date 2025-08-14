@@ -19,8 +19,7 @@ from cryptochart.adapters.base import ExchangeAdapter
 
 
 class PairSelectorDialog(QDialog):
-    """
-    A dialog that fetches and displays tradable pairs from multiple exchanges.
+    """A dialog that fetches and displays tradable pairs from multiple exchanges.
 
     This allows the user to search and select a pair.
     """
@@ -28,8 +27,7 @@ class PairSelectorDialog(QDialog):
     def __init__(
         self, adapters: Sequence[ExchangeAdapter], parent: QWidget | None = None
     ) -> None:
-        """
-        Initializes the PairSelectorDialog.
+        """Initializes the PairSelectorDialog.
 
         Args:
             adapters: A sequence of initialized exchange adapter instances.
@@ -160,8 +158,7 @@ class PairSelectorDialog(QDialog):
         super().accept()
 
     def selected_pair(self) -> str | None:
-        """
-        Returns the pair that was selected by the user.
+        """Returns the pair that was selected by the user.
 
         Returns:
             The selected pair as a string (e.g., "BTC/USD"), or None if
@@ -173,8 +170,7 @@ class PairSelectorDialog(QDialog):
     async def get_pair(
         adapters: Sequence[ExchangeAdapter], parent: QWidget | None = None
     ) -> str | None:
-        """
-        A static method to create, populate, and show the dialog.
+        """A static method to create, populate, and show the dialog.
 
         This encapsulates the entire process of getting a pair selection from the user.
 

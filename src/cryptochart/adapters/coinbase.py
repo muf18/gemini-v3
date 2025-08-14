@@ -12,8 +12,7 @@ from cryptochart.utils.time import normalize_timestamp_to_rfc3339
 
 
 class CoinbaseAdapter(ExchangeAdapter):
-    """
-    Adapter for connecting to the Coinbase Exchange (formerly GDAX/Coinbase Pro).
+    """Adapter for connecting to the Coinbase Exchange (formerly GDAX/Coinbase Pro).
 
     This adapter handles WebSocket and REST APIs.
     """
@@ -45,7 +44,8 @@ class CoinbaseAdapter(ExchangeAdapter):
             "1d": 86400,
         }
         if timeframe not in granularity_map:
-            raise ValueError(f"Unsupported timeframe for Coinbase: {timeframe}")
+            err_msg = f"Unsupported timeframe for Coinbase: {timeframe}"
+            raise ValueError(err_msg)
         return granularity_map[timeframe]
 
     async def _stream_messages(self) -> AsyncGenerator[dict[str, Any], None]:

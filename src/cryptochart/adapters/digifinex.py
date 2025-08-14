@@ -49,7 +49,8 @@ class DigifinexAdapter(ExchangeAdapter):
             "1w": 10080,
         }
         if timeframe not in period_map:
-            raise ValueError(f"Unsupported timeframe for DigiFinex: {timeframe}")
+            err_msg = f"Unsupported timeframe for DigiFinex: {timeframe}"
+            raise ValueError(err_msg)
         return period_map[timeframe]
 
     async def _stream_messages(self) -> AsyncGenerator[dict[str, Any], None]:
@@ -125,8 +126,7 @@ class DigifinexAdapter(ExchangeAdapter):
     async def get_historical_candles(
         self, symbol: str, timeframe: str, start_dt: datetime, end_dt: datetime
     ) -> list[models_pb2.Candle]:
-        """
-        Fetches historical OHLCV data from DigiFinex's REST API.
+        """Fetches historical OHLCV data from DigiFinex's REST API.
 
         Note: This endpoint may have an undocumented limit on the number of
         candles returned.

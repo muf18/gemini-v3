@@ -14,8 +14,7 @@ MICROSECONDS_THRESHOLD = 10**13
 
 
 def get_current_rfc3339_timestamp() -> str:
-    """
-    Returns the current time in UTC as an RFC3339 formatted string.
+    """Returns the current time in UTC as an RFC3339 formatted string.
 
     The timestamp has millisecond precision.
 
@@ -31,8 +30,7 @@ def get_current_rfc3339_timestamp() -> str:
 
 
 def get_current_us() -> int:
-    """
-    Returns the current time as microseconds since the Unix epoch.
+    """Returns the current time as microseconds since the Unix epoch.
 
     This is useful for high-resolution latency measurements.
 
@@ -43,8 +41,7 @@ def get_current_us() -> int:
 
 
 def normalize_timestamp_to_rfc3339(timestamp: Any) -> str:
-    """
-    Normalizes a timestamp from various formats to an RFC3339 string.
+    """Normalizes a timestamp from various formats to an RFC3339 string.
 
     This function can handle:
     - int, float: Assumed to be Unix timestamps in seconds, milliseconds,
@@ -81,9 +78,8 @@ def normalize_timestamp_to_rfc3339(timestamp: Any) -> str:
         try:
             dt_obj = datetime.fromtimestamp(ts_seconds, tz=timezone.utc)
         except (OSError, ValueError) as e:
-            raise ValueError(
-                f"Numeric timestamp '{timestamp}' is out of range."
-            ) from e
+            err_msg = f"Numeric timestamp '{timestamp}' is out of range."
+            raise ValueError(err_msg) from e
 
     elif isinstance(timestamp, str):
         try:
@@ -100,11 +96,11 @@ def normalize_timestamp_to_rfc3339(timestamp: Any) -> str:
         except ValueError as e:
             # Fallback for other common formats could be added here if needed.
             logger.warning(f"Could not parse timestamp string '{timestamp}': {e}")
-            raise ValueError(
-                f"Invalid or unrecognized timestamp string format: {timestamp}"
-            ) from e
+            err_msg = f"Invalid or unrecognized timestamp string format: {timestamp}"
+            raise ValueError(err_msg) from e
 
     else:
-        raise ValueError(f"Unsupported timestamp type: {type(timestamp).__name__}")
+        err_msg = f"Unsupported timestamp type: {type(timestamp).__name__}"
+        raise ValueError(err_msg)
 
     return dt_obj.isoformat(timespec="milliseconds").replace("+00:00", "Z")

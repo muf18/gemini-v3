@@ -208,7 +208,7 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "No Adapters", f"No adapters found for {symbol}.")
             return
 
-        adapter = adapters
+        adapter = adapters[0]
         self.statusBar().showMessage(
             f"Fetching historical data for {symbol} from {adapter.venue_name}..."
         )
@@ -265,7 +265,7 @@ class MainWindow(QMainWindow):
         await self._http_client.aclose()
         logger.success("Shutdown complete.")
 
-    def closeEvent(self, event: QCloseEvent) -> None:
+    def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         """Overrides QMainWindow.closeEvent to trigger async shutdown."""
         logger.info("Close event triggered.")
         event.accept()

@@ -51,7 +51,8 @@ class BinanceAdapter(ExchangeAdapter):
         # Binance uses the same strings for the most common timeframes.
         supported_timeframes = ["1m", "5m", "15m", "30m", "1h", "4h", "1d", "1w"]
         if timeframe not in supported_timeframes:
-            raise ValueError(f"Unsupported timeframe for Binance: {timeframe}")
+            err_msg = f"Unsupported timeframe for Binance: {timeframe}"
+            raise ValueError(err_msg)
         return timeframe
 
     async def _stream_messages(self) -> AsyncGenerator[dict[str, Any], None]:

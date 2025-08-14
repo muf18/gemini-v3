@@ -9,8 +9,7 @@ from PySide6.QtWidgets import QApplication
 
 
 def run_with_asyncio(main_coro: Coroutine[Any, Any, int]) -> int:
-    """
-    Sets up and runs the application with an integrated Qt and asyncio event loop.
+    """Sets up and runs the application with an integrated Qt and asyncio event loop.
 
     This function is the main entry point for the application. It initializes
     the QApplication, installs an event loop that can drive both Qt's GUI events

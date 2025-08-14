@@ -7,8 +7,7 @@ from cryptochart.utils.time import get_current_rfc3339_timestamp
 
 
 class Normalizer:
-    """
-    A central processing component that sits between exchange adapters and the aggregator.
+    """A central processing component that sits between exchange adapters and the aggregator.
 
     The Normalizer's primary responsibilities are:
     1.  Receiving normalized `PriceUpdate` messages from various adapters.
@@ -24,12 +23,12 @@ class Normalizer:
         input_queue: "asyncio.Queue[models_pb2.PriceUpdate]",
         output_queue: "asyncio.Queue[models_pb2.PriceUpdate]",
     ) -> None:
-        """
-        Initializes the Normalizer.
+        """Initializes the Normalizer.
 
         Args:
             input_queue: The queue from which to receive messages from adapters.
-            output_queue: The queue to which enriched messages will be sent for aggregation.
+            output_queue: The queue to which enriched messages will be sent for
+                aggregation.
         """
         self.input_queue = input_queue
         self.output_queue = output_queue

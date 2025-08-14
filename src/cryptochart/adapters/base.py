@@ -19,8 +19,7 @@ JITTER_FACTOR = 0.2  # 20% jitter
 
 
 class ExchangeAdapter(abc.ABC):
-    """
-    An abstract base class for all exchange adapters.
+    """An abstract base class for all exchange adapters.
 
     This class defines the common interface and provides a robust run loop
     with built-in reconnection logic (exponential backoff with jitter) for
@@ -35,9 +34,8 @@ class ExchangeAdapter(abc.ABC):
         symbols: list[str],
         output_queue: asyncio.Queue[models_pb2.PriceUpdate],
         http_client: httpx.AsyncClient,
-    ):
-        """
-        Initializes the adapter.
+    ) -> None:
+        """Initializes the adapter.
 
         Args:
             symbols: A list of trading pair symbols to subscribe to (e.g., ["BTC/USD"]).
@@ -120,6 +118,7 @@ class ExchangeAdapter(abc.ABC):
                 )
 
             if self._running.is_set():
+                # noqa: S311 - Not used for cryptographic purposes
                 jitter = delay * JITTER_FACTOR * (random.random() * 2 - 1)
                 sleep_duration = min(MAX_RECONNECT_DELAY_S, abs(delay + jitter))
                 logger.info(
@@ -135,8 +134,7 @@ class ExchangeAdapter(abc.ABC):
 
     @abc.abstractmethod
     async def _stream_messages(self) -> AsyncGenerator[dict[str, Any], None]:
-        """
-        Connects to the WebSocket, handles subscriptions, and yields raw messages.
+        """Connects to the WebSocket, handles subscriptions, and yields raw messages.
 
         This is the core async generator that should be implemented by each subclass.
         It should handle the entire lifecycle of a single connection. If the
@@ -152,8 +150,7 @@ class ExchangeAdapter(abc.ABC):
     def _normalize_message(
         self, message: dict[str, Any]
     ) -> models_pb2.PriceUpdate | None:
-        """
-        Normalizes a raw, exchange-specific message into the canonical PriceUpdate.
+        """Normalizes a raw, exchange-specific message into the canonical PriceUpdate.
 
         Args:
             message: The raw message dictionary received from the WebSocket.
@@ -168,8 +165,7 @@ class ExchangeAdapter(abc.ABC):
     async def get_historical_candles(
         self, symbol: str, timeframe: str, start_dt: datetime, end_dt: datetime
     ) -> list[models_pb2.Candle]:
-        """
-        Fetches historical OHLCV data from the exchange's REST API.
+        """Fetches historical OHLCV data from the exchange's REST API.
 
         Args:
             symbol: The trading pair symbol.

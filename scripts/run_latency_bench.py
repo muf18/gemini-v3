@@ -41,7 +41,8 @@ def main() -> int:
     print("--- CryptoChart Latency Benchmark ---")
     print(f"Target test file: {LATENCY_TEST_FILE}")
     print(
-        "This test will simulate a high volume of trades to measure pipeline performance."
+        "This test will simulate a high volume of trades to measure pipeline "
+        "performance."
     )
     print("Please wait, this may take a few seconds...")
     print("-" * 35)

@@ -102,8 +102,7 @@ def field_names(dc_instance: Any) -> list[str]:
 
 
 def load_config(path: Path = CONFIG_FILE) -> Settings:
-    """
-    Loads settings from a TOML file, merging them with defaults.
+    """Loads settings from a TOML file, merging them with defaults.
 
     If the config file does not exist, it creates one with default values.
 
@@ -148,8 +147,7 @@ def load_config(path: Path = CONFIG_FILE) -> Settings:
 
 
 def get_api_credentials(exchange_name: str) -> tuple[str | None, str | None]:
-    """
-    Retrieves API key and secret for a given exchange from the system keyring.
+    """Retrieves API key and secret for a given exchange from the system keyring.
 
     Args:
         exchange_name: The lower-case name of the exchange (e.g., 'coinbase').
@@ -172,8 +170,7 @@ def get_api_credentials(exchange_name: str) -> tuple[str | None, str | None]:
 
 
 def set_api_credentials(exchange_name: str, api_key: str, api_secret: str) -> None:
-    """
-    Stores API key and secret for an exchange in the system keyring.
+    """Stores API key and secret for an exchange in the system keyring.
 
     Args:
         exchange_name: The lower-case name of the exchange.

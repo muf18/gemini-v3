@@ -6,8 +6,7 @@ T = TypeVar("T")
 
 
 class RingBuffer(Sized, Generic[T]):
-    """
-    A high-performance, fixed-capacity ring buffer.
+    """A high-performance, fixed-capacity ring buffer.
 
     This implementation uses `collections.deque` with a `maxlen` for
     efficient appends and pops from both ends. When the buffer is full,
@@ -17,8 +16,7 @@ class RingBuffer(Sized, Generic[T]):
     """
 
     def __init__(self, capacity: int) -> None:
-        """
-        Initializes the RingBuffer.
+        """Initializes the RingBuffer.
 
         Args:
             capacity: The maximum number of elements the buffer can hold.
@@ -27,7 +25,8 @@ class RingBuffer(Sized, Generic[T]):
             ValueError: If the capacity is not a positive integer.
         """
         if not isinstance(capacity, int) or capacity <= 0:
-            raise ValueError("Capacity must be a positive integer.")
+            err_msg = "Capacity must be a positive integer."
+            raise ValueError(err_msg)
         self._capacity = capacity
         self._data: deque[T] = deque(maxlen=capacity)
 
@@ -42,8 +41,7 @@ class RingBuffer(Sized, Generic[T]):
         return len(self._data) == self._capacity
 
     def append(self, item: T) -> None:
-        """
-        Adds an element to the right side of the buffer.
+        """Adds an element to the right side of the buffer.
 
         If the buffer is full, the oldest element (from the left) is
         automatically discarded.
@@ -54,8 +52,7 @@ class RingBuffer(Sized, Generic[T]):
         self._data.append(item)
 
     def extend(self, items: Iterable[T]) -> None:
-        """
-        Extends the buffer by appending elements from the iterable.
+        """Extends the buffer by appending elements from the iterable.
 
         If the buffer overflows, the oldest elements are discarded until
         the buffer is back within its capacity, containing only the newest
@@ -67,8 +64,7 @@ class RingBuffer(Sized, Generic[T]):
         self._data.extend(items)
 
     def pop(self) -> T:
-        """
-        Removes and returns the rightmost element.
+        """Removes and returns the rightmost element.
 
         Raises:
             IndexError: If the buffer is empty.
@@ -76,8 +72,7 @@ class RingBuffer(Sized, Generic[T]):
         return self._data.pop()
 
     def popleft(self) -> T:
-        """
-        Removes and returns the leftmost element.
+        """Removes and returns the leftmost element.
 
         Raises:
             IndexError: If the buffer is empty.
@@ -93,8 +88,7 @@ class RingBuffer(Sized, Generic[T]):
         return len(self._data)
 
     def __getitem__(self, index: int) -> T:
-        """
-        Returns the element at the specified index.
+        """Returns the element at the specified index.
 
         Supports standard list-like indexing, including negative indices.
 

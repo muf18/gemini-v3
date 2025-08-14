@@ -35,7 +35,8 @@ class BitvavoAdapter(ExchangeAdapter):
         # Bitvavo supports 1m, 5m, 15m, 30m, 1h, 4h, 1d. It does not support 1w.
         supported_timeframes = ["1m", "5m", "15m", "30m", "1h", "4h", "1d"]
         if timeframe not in supported_timeframes:
-            raise ValueError(f"Unsupported timeframe for Bitvavo: {timeframe}")
+            err_msg = f"Unsupported timeframe for Bitvavo: {timeframe}"
+            raise ValueError(err_msg)
         return timeframe
 
     async def _stream_messages(self) -> AsyncGenerator[dict[str, Any], None]:
@@ -152,7 +153,8 @@ class BitvavoAdapter(ExchangeAdapter):
                         )
                     )
 
-                # Move to the next time window. The last candle's timestamp is the new start.
+                # Move to the next time window. The last candle's timestamp is the
+                # new start.
                 last_ts_in_batch = int(data[-1][0])
                 current_start_ms = last_ts_in_batch + 1
 

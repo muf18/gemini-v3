@@ -44,7 +44,8 @@ class OKXAdapter(ExchangeAdapter):
             "1w": "1W",
         }
         if timeframe not in bar_map:
-            raise ValueError(f"Unsupported timeframe for OKX: {timeframe}")
+            err_msg = f"Unsupported timeframe for OKX: {timeframe}"
+            raise ValueError(err_msg)
         return bar_map[timeframe]
 
     async def _stream_messages(self) -> AsyncGenerator[dict[str, Any], None]:

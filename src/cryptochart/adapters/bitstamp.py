@@ -52,7 +52,8 @@ class BitstampAdapter(ExchangeAdapter):
         }
         # Bitstamp does not support 1w, so we raise an error.
         if timeframe not in step_map:
-            raise ValueError(f"Unsupported timeframe for Bitstamp: {timeframe}")
+            err_msg = f"Unsupported timeframe for Bitstamp: {timeframe}"
+            raise ValueError(err_msg)
         return step_map[timeframe]
 
     async def _stream_messages(self) -> AsyncGenerator[dict[str, Any], None]:
@@ -77,7 +78,8 @@ class BitstampAdapter(ExchangeAdapter):
                     yield message
                 elif message.get("event") == "bts:subscription_succeeded":
                     logger.debug(
-                        f"[{self.venue_name}] Subscription success: {message['channel']}"
+                        f"[{self.venue_name}] Subscription success: "
+                        f"{message['channel']}"
                     )
                 elif message.get("event") == "bts:request_reconnect":
                     logger.info(

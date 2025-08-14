@@ -46,7 +46,8 @@ class KrakenAdapter(ExchangeAdapter):
             "1w": 10080,
         }
         if timeframe not in interval_map:
-            raise ValueError(f"Unsupported timeframe for Kraken: {timeframe}")
+            err_msg = f"Unsupported timeframe for Kraken: {timeframe}"
+            raise ValueError(err_msg)
         return interval_map[timeframe]
 
     async def _stream_messages(self) -> AsyncGenerator[dict[str, Any], None]:

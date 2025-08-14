@@ -50,7 +50,8 @@ class BitgetAdapter(ExchangeAdapter):
             "1w": "1W",
         }
         if timeframe not in granularity_map:
-            raise ValueError(f"Unsupported timeframe for Bitget: {timeframe}")
+            err_msg = f"Unsupported timeframe for Bitget: {timeframe}"
+            raise ValueError(err_msg)
         return granularity_map[timeframe]
 
     async def _stream_messages(self) -> AsyncGenerator[dict[str, Any], None]:
