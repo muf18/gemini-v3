@@ -5,10 +5,14 @@ from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 from typing import Any, TextIO
+
 import aiofiles
 from loguru import logger
+
 from cryptochart.types import models_pb2
+
 # --- Constants ---
+
 # The header row for all generated CSV files.
 CSV_HEADER: list[str] = [
     "symbol",
@@ -23,12 +27,18 @@ CSV_HEADER: list[str] = [
     "cum_volume",
     "timeframe",
 ]
+
 # Write to disk after this many records have been buffered.
 WRITE_BATCH_SIZE: int = 500
+
 # Or write to disk after this many seconds, whichever comes first.
 FLUSH_INTERVAL_SECONDS: float = 10.0
+
+
 class Persistence:
-    """Handles optional, non-blocking writing of aggregated data to CSV files.
+    """
+    Handles optional, non-blocking writing of aggregated data to CSV files.
+
     This component runs as a dedicated background task, consuming data from a
     queue. It batches writes to minimize I/O overhead and uses `aiofiles` to
     ensure the main application event loop is never blocked by disk operations.
@@ -92,7 +102,7 @@ class Persistence:
             logger.warning("Persistence engine is already running.")
 
     async def stop(self) -> None:
-        """Stops the writer loop and ensures all data is flushed and files are closed."""
+        """Stop the writer loop and ensure all data is flushed and files are closed."""
         if not self._running.is_set():
             logger.warning("Persistence engine is not running.")
             return
