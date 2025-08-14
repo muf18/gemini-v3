@@ -36,8 +36,7 @@ FLUSH_INTERVAL_SECONDS: float = 10.0
 
 
 class Persistence:
-    """
-    Handles optional, non-blocking writing of aggregated data to CSV files.
+    """Handles optional, non-blocking writing of aggregated data to CSV files.
 
     This component runs as a dedicated background task, consuming data from a
     queue. It batches writes to minimize I/O overhead and uses `aiofiles` to
@@ -166,7 +165,7 @@ class Persistence:
                 records_by_file[filename].append(record)
 
             for filename, records in records_by_file.items():
-                try:  # noqa: PERF203
+                try:
                     file_handle = await self._get_file_handle(filename)
                     # Use io.StringIO to build the CSV in memory
                     string_io = io.StringIO()
@@ -219,7 +218,7 @@ class Persistence:
         """Closes all open file handles."""
         logger.debug(f"Closing {len(self._open_files)} open file handles.")
         for handle in self._open_files.values():
-            try:  # noqa: PERF203
+            try:
                 await handle.close()
             except Exception:
                 logger.exception("Error closing a file handle.")

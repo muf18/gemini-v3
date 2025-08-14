@@ -40,7 +40,7 @@ def get_current_us() -> int:
     return time.time_ns() // 1000
 
 
-def normalize_timestamp_to_rfc3339(timestamp: Any) -> str:
+def normalize_timestamp_to_rfc3339(timestamp: Any) -> str:  # noqa: C901, PLR0912
     """Normalizes a timestamp from various formats to an RFC3339 string.
 
     This function can handle:
