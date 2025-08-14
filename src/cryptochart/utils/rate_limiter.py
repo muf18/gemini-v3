@@ -1,5 +1,6 @@
 import asyncio
 import contextlib
+import types
 from collections.abc import AsyncGenerator
 from typing import Any, Self
 
@@ -79,7 +80,7 @@ class AsyncRateLimiter:
                 await self._refill_task
         self._refill_task = None
 
-    @asynccontextmanager
+    @contextlib.asynccontextmanager
     async def acquire(self) -> AsyncGenerator[None, None]:
         """Acquires a token, waiting if necessary. Use as an async context manager.
 
@@ -102,7 +103,10 @@ class AsyncRateLimiter:
         return self
 
     async def __aexit__(
-        self, exc_type: Any, exc_val: Any, exc_tb: Any
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: types.TracebackType | None,
     ) -> None:
         """Stops the refiller task when exiting the context."""
         await self.stop()
